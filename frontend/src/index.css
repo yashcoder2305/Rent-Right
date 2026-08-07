@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #f8fafc;
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.font-outfit {
+  font-family: 'Outfit', sans-serif;
+}
+
+/* Explicit fallback helpers for primary brand buttons to guarantee 100% visibility & contrast */
+.btn-primary {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+.btn-primary:hover {
+  background-color: #1d4ed8 !important;
+}
+
+.bg-brand-600 {
+  background-color: #2563eb !important;
+}
+
+.text-brand-600 {
+  color: #2563eb !important;
+}
+
+.border-brand-200 {
+  border-color: #bfdbfe !important;
+}
+
+.bg-brand-50 {
+  background-color: #eff6ff !important;
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
