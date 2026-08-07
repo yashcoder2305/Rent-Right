@@ -3,6 +3,11 @@ import express from 'express';
 import cors from 'cors';
 
 import db from './db.js';
+import { connectMongoDB } from './mongoDb.js';
+
+// Try connecting to MongoDB Atlas if configured
+connectMongoDB();
+
 import authRoutes from './routes/auth.js';
 import analyzeRoutes from './routes/analyze.js';
 import letterRoutes from './routes/letter.js';
