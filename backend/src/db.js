@@ -1,14 +1,15 @@
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
 
+const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 let db;
 
 try {
-  // Use dynamic require/import for node:sqlite to prevent crash on environments without node:sqlite support (like older Vercel Node runtimes)
-  const { DatabaseSync } = await import('node:sqlite');
+  const { DatabaseSync } = require('node:sqlite');
   
   const dbPath = process.env.VERCEL
     ? path.join('/tmp', 'rentright.sqlite')
@@ -109,7 +110,6 @@ try {
 } catch (e) {
   console.warn('⚠️ SQLite DatabaseSync is not supported in this environment. Falling back to mock wrapper.', e.message);
   
-  // Safe mock wrapper for runtime compatibility
   db = {
     exec: () => {},
     prepare: () => ({
