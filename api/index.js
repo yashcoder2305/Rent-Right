@@ -190,8 +190,8 @@ app.post('/api/analyze', requireAuth, async (req, res) => {
     upload.single('file')(req, res, async (err) => {
       if (err) return res.status(400).json({ error: err.message });
       try {
-        const { extractClauses } = await import('./backend/src/services/clauseExtractor.js');
-        const { matchRules, explainClausesPlainly, summarizeLease } = await import('./backend/src/services/rulesMatcher.js');
+        const { extractClauses } = await import('../backend/src/services/clauseExtractor.js');
+        const { matchRules, explainClausesPlainly, summarizeLease } = await import('../backend/src/services/rulesMatcher.js');
 
         const jurisdictionId = req.body.jurisdiction_id || 'IN';
         let text;
@@ -202,11 +202,11 @@ app.post('/api/analyze', requireAuth, async (req, res) => {
           filename = req.file.originalname;
           const mime = req.file.mimetype;
           if (mime === 'application/pdf') {
-            const { parseLeasePdf } = await import('./backend/src/services/pdfParser.js');
+            const { parseLeasePdf } = await import('../backend/src/services/pdfParser.js');
             const parsed = await parseLeasePdf(req.file.buffer);
             text = parsed.text;
           } else if (mime.includes('wordprocessingml') || mime.includes('msword')) {
-            const { parseLeaseDocx } = await import('./backend/src/services/docxParser.js');
+            const { parseLeaseDocx } = await import('../backend/src/services/docxParser.js');
             text = await parseLeaseDocx(req.file.buffer);
           }
         } else if (req.body.text) {
@@ -247,7 +247,7 @@ app.post('/api/letter', requireAuth, async (req, res) => {
     if (!lease) return res.status(404).json({ error: 'Lease not found' });
     const violations = await Violation.find({ lease_id, _id: { $in: violation_ids } }).lean();
     if (!violations.length) return res.status(404).json({ error: 'No matching violations' });
-    const { generateDisputeLetter } = await import('./backend/src/services/letterGenerator.js');
+    const { generateDisputeLetter } = await import('../backend/src/services/letterGenerator.js');
     const { pdfBuffer, bodyText } = await generateDisputeLetter({ tenantName: req.user.name, tenantAddress: tenant_address, landlordName: landlord_name, landlordAddress: landlord_address, violations });
     await Letter.create({ lease_id, user_id: req.user.id, violation_ids, body_text: bodyText });
     res.setHeader('Content-Type', 'application/pdf');
@@ -267,7 +267,7 @@ app.post('/api/landlord/draft', requireAuth, async (req, res) => {
     const clauses = lease.clauses || [];
     const violations = await Violation.find({ lease_id }).lean();
     if (!clauses.length) return res.status(422).json({ error: 'No clauses found. Re-analyze first.' });
-    const { generateCompliantDraft } = await import('./backend/src/services/landlordDraftGenerator.js');
+    const { generateCompliantDraft } = await import('../backend/src/services/landlordDraftGenerator.js');
     const { sections, summary, changes_count, pdfBuffer } = await generateCompliantDraft(clauses, violations, lease.jurisdiction_id);
     await Lease.findByIdAndUpdate(lease_id, { landlord_draft: { summary, changes_count, sections } });
     res.setHeader('Content-Type', 'application/pdf');
