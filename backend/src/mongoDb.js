@@ -46,8 +46,11 @@ export async function connectMongoDB() {
     console.log('ℹ️ MONGODB_URI not provided — using embedded SQLite database.');
     return false;
   }
+  if (mongoose.connection.readyState >= 1) {
+    return true;
+  }
   try {
-    await mongoose.connect(uri);
+    await mongoose.connect(uri, { serverSelectionTimeoutMS: 15000 });
     console.log('🍃 Successfully connected to MongoDB Atlas!');
     return true;
   } catch (err) {

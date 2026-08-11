@@ -15,3 +15,4 @@ connectMongoDB().then((connected) => {
     console.log(`✅ RentRight backend listening on http://localhost:${PORT}`);
   });
 });
+
