@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import db from '../db.js';
+import store from '../store.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
@@ -16,15 +16,16 @@ function similarity(a, b) {
   return overlap / Math.max(wa.size, wb.size);
 }
 
-router.post('/', requireAuth, (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   const { lease_id_old, lease_id_new } = req.body;
   if (!lease_id_old || !lease_id_new) {
     return res.status(400).json({ error: 'lease_id_old and lease_id_new are required' });
   }
 
-  const oldLease = db.prepare('SELECT * FROM leases WHERE id = ? AND user_id = ?').get(lease_id_old, req.user.id);
-  const newLease = db.prepare('SELECT * FROM leases WHERE id = ? AND user_id = ?').get(lease_id_new, req.user.id);
+  const oldLease = await store.getLeaseById(lease_id_old, req.user.id);
+  const newLease = await store.getLeaseById(lease_id_new, req.user.id);
   if (!oldLease || !newLease) return res.status(404).json({ error: 'One or both leases not found' });
+
 
   const oldClauses = JSON.parse(oldLease.clauses_json || '[]');
   const newClauses = JSON.parse(newLease.clauses_json || '[]');

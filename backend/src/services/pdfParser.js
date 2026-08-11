@@ -5,15 +5,18 @@
  */
 import { fileURLToPath } from 'url';
 import path from 'path';
+import fs from 'fs';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 
-// In Node.js we must point to the worker file explicitly (no browser Web Worker context)
+// In Node.js we must point to the worker file explicitly
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const workerPath = path.resolve(
-  __dirname,
-  '../../node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs'
-);
-pdfjsLib.GlobalWorkerOptions.workerSrc = `file:///${workerPath.replace(/\\/g, '/')}`;
+const localWorker = path.resolve(__dirname, '../../node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs');
+const rootWorker = path.resolve(process.cwd(), 'node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs');
+const workerPath = fs.existsSync(localWorker) ? localWorker : rootWorker;
+
+if (fs.existsSync(workerPath)) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `file:///${workerPath.replace(/\\/g, '/')}`;
+}
 
 /**
  * Extracts and normalises text from an uploaded lease PDF buffer.

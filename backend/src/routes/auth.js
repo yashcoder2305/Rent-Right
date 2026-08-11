@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import db from '../db.js';
+import store from '../store.js';
 
 const router = Router();
 
@@ -14,23 +14,20 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ error: 'Password must be at least 8 characters' });
   }
 
-  // Validate role
   const userRole = role === 'landlord' ? 'landlord' : 'tenant';
 
-  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+  const existing = await store.getUserByEmail(email);
   if (existing) return res.status(409).json({ error: 'An account with this email already exists' });
 
-  const hash = await bcrypt.hash(password, 10);
-  const info = db
-    .prepare('INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)')
-    .run(name, email, hash, userRole);
+  const password_hash = await bcrypt.hash(password, 10);
+  const user = await store.createUser({ name, email, password_hash, role: userRole });
 
   const token = jwt.sign(
-    { id: info.lastInsertRowid, name, email, role: userRole, isAdmin: false },
+    { id: user.id, name, email, role: userRole, isAdmin: false },
     process.env.JWT_SECRET,
     { expiresIn: '7d' }
   );
-  res.json({ token, user: { id: info.lastInsertRowid, name, email, role: userRole } });
+  res.json({ token, user: { id: user.id, name, email, role: userRole } });
 });
 
 router.post('/login', async (req, res) => {
@@ -40,7 +37,7 @@ router.post('/login', async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ error: 'email and password are required' });
     }
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+    const user = await store.getUserByEmail(email);
     if (!user) return res.status(401).json({ error: 'Invalid email or password' });
 
     const valid = await bcrypt.compare(password, user.password_hash);

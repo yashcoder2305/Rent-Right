@@ -1,9 +1,14 @@
 import { DatabaseSync } from 'node:sqlite';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const db = new DatabaseSync(path.join(__dirname, '..', 'rentright.sqlite'));
+const dbPath = process.env.VERCEL
+  ? path.join('/tmp', 'rentright.sqlite')
+  : path.join(__dirname, '..', 'rentright.sqlite');
+
+const db = new DatabaseSync(dbPath);
 
 // --- Schema ---
 // NOTE: In the team's original plan, "legal rules" live in PostgreSQL and

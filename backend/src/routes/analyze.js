@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
-import db from '../db.js';
+import store from '../store.js';
 import { requireAuth } from '../middleware/auth.js';
 import { parseLeasePdf, normalizePlainText } from '../services/pdfParser.js';
 import { parseLeaseDocx } from '../services/docxParser.js';
@@ -119,35 +119,21 @@ router.post('/', requireAuth, upload.single('file'), async (req, res) => {
       plain_explanation: explanationMap[c.clause_id] || null,
     }));
 
-    const leaseInsert = db
-      .prepare(
-        `INSERT INTO leases (user_id, jurisdiction_id, filename, cloudinary_url, raw_text, clauses_json, lease_summary_json)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
-      )
-      .run(
-        req.user.id,
-        jurisdictionId,
-        filename,
-        cloudinaryUrl,
-        text,
-        JSON.stringify(clausesWithPlainText),
-        JSON.stringify(leaseSummary)
-      );
+    // Persist lease to DB (Mongo or SQLite via store)
+    const lease = await store.createLease({
+      user_id: req.user.id,
+      jurisdiction_id: jurisdictionId,
+      filename,
+      cloudinary_url: cloudinaryUrl,
+      raw_text: text,
+      clauses: clausesWithPlainText,
+      lease_summary: leaseSummary,
+    });
 
-    const leaseId = leaseInsert.lastInsertRowid;
+    const leaseId = lease.id;
 
-    const insertViolation = db.prepare(
-      `INSERT INTO violations (lease_id, rule_id, clause_id, clause_text, classification, severity, confidence, explanation, legal_reference)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    );
-    const violationIds = [];
-    for (const v of violations) {
-      const info = insertViolation.run(
-        leaseId, v.rule_id, v.clause_id, v.clause_text, v.classification,
-        v.severity, v.confidence, v.explanation, v.legal_reference
-      );
-      violationIds.push(info.lastInsertRowid);
-    }
+    // Persist violations
+    const savedViolations = await store.createViolations(leaseId, violations);
 
     res.json({
       lease_id: leaseId,
@@ -155,7 +141,7 @@ router.post('/', requireAuth, upload.single('file'), async (req, res) => {
       clause_count: clauses.length,
       clauses: clausesWithPlainText,
       lease_summary: leaseSummary,
-      violations: violations.map((v, i) => ({ id: violationIds[i], ...v })),
+      violations: savedViolations,
       cloudinary_url: cloudinaryUrl,
     });
   } catch (err) {

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import db from '../db.js';
+import store from '../store.js';
 import { requireAuth } from '../middleware/auth.js';
 import { generateDisputeLetter } from '../services/letterGenerator.js';
 
@@ -17,14 +17,10 @@ router.post('/', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'lease_id and a non-empty violation_ids array are required' });
     }
 
-    const lease = db.prepare('SELECT * FROM leases WHERE id = ? AND user_id = ?').get(lease_id, req.user.id);
+    const lease = await store.getLeaseById(lease_id, req.user.id);
     if (!lease) return res.status(404).json({ error: 'Lease not found' });
 
-    const placeholders = violation_ids.map(() => '?').join(',');
-    const violations = db
-      .prepare(`SELECT * FROM violations WHERE lease_id = ? AND id IN (${placeholders})`)
-      .all(lease_id, ...violation_ids);
-
+    const violations = await store.getViolationsByIds(lease_id, violation_ids);
     if (violations.length === 0) {
       return res.status(404).json({ error: 'No matching violations found for this lease' });
     }
@@ -37,9 +33,12 @@ router.post('/', requireAuth, async (req, res) => {
       violations,
     });
 
-    db.prepare(
-      'INSERT INTO letters (lease_id, user_id, violation_ids, body_text) VALUES (?, ?, ?, ?)'
-    ).run(lease_id, req.user.id, JSON.stringify(violation_ids), bodyText);
+    await store.createLetter({
+      lease_id,
+      user_id: req.user.id,
+      violation_ids,
+      body_text: bodyText,
+    });
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="dispute-letter-lease-${lease_id}.pdf"`);
