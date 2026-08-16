@@ -43,14 +43,98 @@ function runDeterministicCheck(rule, clause) {
   };
 }
 
+function getDefaultLegalRef(jurisdictionId) {
+  if (jurisdictionId === 'IN') return 'Model Tenancy Act 2021 / State Rent Control Act';
+  if (jurisdictionId === 'UG') return 'Landlord and Tenant Act 2022 (Uganda)';
+  return 'Applicable Tenancy Law';
+}
+
+/**
+ * Second-pass scan: sends ALL clauses to the LLM for a general illegal-clause check.
+ * This catches violations that slipped through the typed-rule matching (e.g. because
+ * clause_type was "general" or the rule set doesn't yet cover an exotic clause type).
+ */
+async function universalViolationScan(clauses, rawViolations, jurisdictionId) {
+  // Only scan clauses not already flagged as clear_violation
+  const flaggedIds = new Set(
+    rawViolations.filter((v) => v.classification === 'clear_violation').map((v) => v.clause_id)
+  );
+  const toScan = clauses.filter((c) => !flaggedIds.has(c.clause_id));
+  if (toScan.length === 0) return;
+
+  const jurisdictionLabel = jurisdictionId === 'IN'
+    ? 'Indian (Model Tenancy Act 2021, State Rent Control Acts, Transfer of Property Act 1882)'
+    : jurisdictionId === 'UG'
+    ? 'Ugandan (Landlord and Tenant Act 2022)'
+    : jurisdictionId;
+
+  const prompt = `You are a strict ${jurisdictionLabel} tenant-rights legal expert.
+
+Review the following lease clauses and flag ANY clause that is:
+- Illegal or unenforceable under ${jurisdictionLabel} residential tenancy law
+- Unfair, oppressive, or gives the landlord unchecked power
+- In violation of a tenant's statutory rights (e.g. right to peaceful enjoyment, refundable deposit, notice before entry, limits on rent hikes)
+
+For EACH clause, return a JSON object. If you find a problem, set "violation": true. If the clause is completely standard and legal, set "violation": false.
+
+KNOWN VIOLATIONS TO ALWAYS FLAG:
+- Non-refundable security deposit → clear_violation
+- Landlord can enter without notice or "at any time" → clear_violation  
+- Rent increases without formula, cap, or minimum notice → clear_violation
+- Waiver of statutory rights → clear_violation
+- Penalty clauses that are disproportionate → potential_violation
+- Vague clauses giving landlord "sole discretion" → potential_violation
+
+Return a JSON array, one item per clause in the SAME ORDER:
+{ "clause_id": "...", "violation": true/false, "classification": "clear_violation"|"potential_violation"|"compliant", "severity": "critical"|"moderate"|"minor", "explanation": "one sentence", "legal_reference": "cite specific law section" }
+
+CLAUSES:
+${JSON.stringify(toScan.map((c) => ({ clause_id: c.clause_id, clause_type: c.clause_type, text: c.text })))}`;
+
+  try {
+    const results = await callGeminiJSON(prompt, { temperature: 0.05, maxTokens: 6000 });
+    if (!Array.isArray(results)) return;
+
+    for (const r of results) {
+      if (!r.violation || r.classification === 'compliant') continue;
+      // Only add if not already flagged for this clause
+      const alreadyFlagged = rawViolations.some((v) => v.clause_id === r.clause_id);
+      const clause = toScan.find((c) => c.clause_id === r.clause_id);
+      if (!clause) continue;
+
+      rawViolations.push({
+        rule_id: 'universal_scan',
+        clause_id: r.clause_id,
+        clause_text: clause.text,
+        classification: r.classification || 'potential_violation',
+        severity: r.severity || 'moderate',
+        confidence: alreadyFlagged ? 0.6 : 0.85,
+        explanation: r.explanation || 'Clause flagged as potentially illegal or unfair.',
+        legal_reference: r.legal_reference || getDefaultLegalRef(jurisdictionId),
+      });
+    }
+  } catch (err) {
+    console.warn('universalViolationScan fallback:', err.message);
+  }
+}
+
+
+
 export async function matchRules(clauses, jurisdictionId) {
   const rules = loadRules(jurisdictionId);
   const rawViolations = [];
   const llmQueue = [];
 
+  // Track which clauses matched at least one rule (for universal scan below)
+  const clausesWithRules = new Set();
+
   for (const clause of clauses) {
-    const relevantRules = rules.filter((r) => r.clause_type === clause.clause_type);
+    // Match both exact clause_type AND suspicious_clause rules (catch-all)
+    const relevantRules = rules.filter(
+      (r) => r.clause_type === clause.clause_type || r.clause_type === 'suspicious_clause'
+    );
     for (const rule of relevantRules) {
+      clausesWithRules.add(clause.clause_id);
       if (rule.check_type === 'deterministic') {
         const result = runDeterministicCheck(rule, clause);
         if (result !== null) {
@@ -82,11 +166,32 @@ export async function matchRules(clauses, jurisdictionId) {
       clause_text: item.clause.text,
     }));
 
-    const prompt = `You are a tenant-rights classification assistant. For each item below, classify the
-lease clause against the described rule as one of: "clear_violation", "potential_violation", "compliant".
+    const jurisdictionLabel = jurisdictionId === 'IN'
+      ? 'Indian (governed by State Rent Control Acts, Model Tenancy Act 2021, Transfer of Property Act 1882, and Consumer Protection Act 2019)'
+      : jurisdictionId === 'UG'
+      ? 'Ugandan (governed by the Landlord and Tenant Act 2022)'
+      : jurisdictionId;
 
-Return a JSON array with one object per item, in the SAME ORDER, each with:
-{ "index": <number>, "classification": "...", "confidence": 0.0-1.0, "explanation": "one plain-English sentence" }
+    const prompt = `You are a strict tenant-rights legal analyst specialising in ${jurisdictionLabel} residential tenancy law.
+
+Your task: For each item below, determine whether the lease clause VIOLATES the stated rule.
+
+CRITICAL INSTRUCTIONS:
+- You MUST err on the side of flagging. If there is ANY doubt, classify as "potential_violation" — NEVER default to "compliant" when the clause is ambiguous.
+- "compliant" means the clause is CLEARLY and unambiguously lawful. If you are not 100% certain it is lawful, do NOT mark it compliant.
+- A non-refundable security deposit is ALWAYS a clear_violation under Indian law.
+- A landlord entering without notice is ALWAYS a clear_violation under Indian law.
+- Arbitrary rent increases with no formula or cap are ALWAYS a clear_violation.
+- Clauses giving the landlord "sole discretion" without limits are suspicious_clause violations.
+- Waiver of statutory rights is ALWAYS a clear_violation.
+
+Classify each clause as one of:
+  "clear_violation"      — clause directly breaks the stated law/rule with high certainty
+  "potential_violation"  — clause is suspicious, unfair, or likely unenforceable even if not 100% certain
+  "compliant"            — clause is CLEARLY and unambiguously lawful (use sparingly)
+
+Return a JSON array with one object per item in the SAME ORDER:
+{ "index": <number>, "classification": "...", "confidence": 0.0–1.0, "explanation": "One sentence citing which law/principle is violated and how it harms the tenant." }
 
 ITEMS:
 ${JSON.stringify(items)}`;
@@ -117,11 +222,15 @@ ${JSON.stringify(items)}`;
           severity: item.rule.severity,
           confidence: typeof res.confidence === 'number' ? res.confidence : 0.5,
           explanation: res.explanation || `Matches rule ${item.rule.id}: ${item.rule.description}`,
-          legal_reference: item.rule.legal_reference,
+          legal_reference: item.rule.legal_reference || getDefaultLegalRef(jurisdictionId),
         });
       }
     }
   }
+
+  // Universal scan: run ALL clauses through a general illegal-clause detector
+  // regardless of whether they matched specific typed rules
+  await universalViolationScan(clauses, rawViolations, jurisdictionId);
 
   const severityRank = { critical: 0, moderate: 1, minor: 2 };
   const consolidated = new Map();
