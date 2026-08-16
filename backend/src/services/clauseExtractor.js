@@ -1,3 +1,14 @@
+/**
+ * clauseExtractor.js
+ *
+ * Hybrid clause extraction pipeline:
+ *  1. Normalise all line endings
+ *  2. Try 5 cheap structural regex strategies (numbered, lettered, header-para, keyword-header, paragraph)
+ *  3. Keep whichever strategy yielded the most clauses
+ *  4. Only call LLM if regex produced < 2 clauses (truly unstructured text)
+ *  5. Hard fallback: split by double-newlines (paragraphs) if everything else fails
+ */
+
 import { callGeminiJSON } from './gemini.js';
 
 let clauseCounter = 0;
@@ -6,28 +17,27 @@ function nextId() {
   return `c_${Date.now()}_${clauseCounter}`;
 }
 
-// Guesses a clause_type label from clause text using keyword matching.
-// Used so deterministic rule matching has something to key off before
-// any LLM call happens.
+// ─── Clause Type Keyword Matcher ──────────────────────────────────────────────
+
 const TYPE_KEYWORDS = {
-  deposit:            /deposit|security\s+deposit/i,
-  entry_rights:       /right\s+of\s+entry|landlord\s+may\s+enter|access\s+to\s+the\s+premises/i,
-  notice_period:      /notice\s+period|terminat|vacat/i,
-  repairs:            /repair|maintenance|structural/i,
-  eviction:           /evict|lock\s?out|utilit(y|ies)\s+(disconnect|shut)/i,
-  rent_increase:      /rent\s+increase|escalat/i,
-  discrimination:     /discriminat/i,
-  penalty:            /penalt|fine|late\s+fee|forfeit/i,
-  subletting:         /sublet|sub-let|subleas|assign\s+the\s+(lease|tenancy)/i,
-  pets:               /\bpet\b|animal|dog|cat/i,
-  utilities:          /utilit|electricity|water\s+bill|gas\s+bill|maintenance\s+charge/i,
-  arbitration:        /arbitrat|dispute\s+resolution|mediat/i,
-  privacy:            /cctv|surveil|monitor|inspect|photograph/i,
-  abandonment:        /abandon|deemed\s+vacated|vacate\s+without\s+notice/i,
-  waiver:             /waiv|rights.*are.*given\s+up|relinquish/i,
-  indemnity:          /indemnif|hold.*harmless|liable\s+for\s+all/i,
-  modification:       /amend|modif|landlord.*change.*terms|unilateral/i,
-  suspicious_clause:  /sole\s+discretion|without\s+reason|at\s+any\s+time|no\s+obligation/i,
+  deposit:           /deposit|security\s+deposit/i,
+  entry_rights:      /landlord\s+may\s+enter|right\s+of\s+entry|access\s+to\s+the\s+premises|enter\s+(the\s+)?premises/i,
+  notice_period:     /notice\s+period|terminat|vacat/i,
+  repairs:           /repair|maintenance|structural/i,
+  eviction:          /evict|lock\s?out|utilit(y|ies)\s+(disconnect|shut)/i,
+  rent_increase:     /rent\s+increase|escalat|increase.*rent|rent.*increas/i,
+  discrimination:    /discriminat/i,
+  penalty:           /penalt|fine|late\s+fee|forfeit/i,
+  subletting:        /sublet|sub-let|subleas|assign\s+the\s+(lease|tenancy)/i,
+  pets:              /\bpet\b|animal|dog|cat/i,
+  utilities:         /utilit|electricity|water\s+bill|gas\s+bill|maintenance\s+charge/i,
+  arbitration:       /arbitrat|dispute\s+resolution|mediat/i,
+  privacy:           /cctv|surveil|monitor|inspect|photograph/i,
+  abandonment:       /abandon|deemed\s+vacated|vacate\s+without\s+notice/i,
+  waiver:            /waiv|rights.*are.*given\s+up|relinquish/i,
+  indemnity:         /indemnif|hold.*harmless|liable\s+for\s+all/i,
+  modification:      /amend|modif|landlord.*change.*terms|unilateral/i,
+  suspicious_clause: /sole\s+discretion|without\s+(reason|notice)|at\s+any\s+time|no\s+obligation|non.refundable/i,
 };
 
 function guessClauseType(text) {
@@ -37,83 +47,130 @@ function guessClauseType(text) {
   return 'general';
 }
 
-function toClauseObjects(rawChunks, pageHint = 1) {
+function toClauseObjects(rawChunks, source = 'regex') {
   return rawChunks
     .map((t) => t.trim())
-    .filter((t) => t.length > 15) // discard noise fragments
+    .filter((t) => t.length > 20)        // discard header noise / blank lines
     .map((text) => ({
       clause_id: nextId(),
       clause_type: guessClauseType(text),
       text,
-      page: pageHint,
-      confidence: 1.0, // regex-matched clauses are high-confidence structurally
-      source: 'regex',
+      page: 1,
+      confidence: source === 'regex' ? 1.0 : 0.85,
+      source,
     }));
 }
 
-// Strategy 1: numbered clauses, e.g. "1. Deposit ..." / "1) ..."
+// ── Strategy 1: numbered clauses  "1. Rent ..."  or  "1) Rent ..." ──────────
 function extractNumbered(text) {
-  const parts = text.split(/\n(?=\s*\d{1,2}[.)]\s+)/g);
+  // Matches both \n and start-of-string before numbered item
+  const parts = text.split(/(?:^|\n)(?=\s*\d{1,2}[.)]\s+\S)/gm);
   return toClauseObjects(parts);
 }
 
-// Strategy 2: lettered subclauses, e.g. "(a) ..." / "a. ..."
+// ── Strategy 2: lettered subclauses  "(a) ..."  /  "a. ..." ─────────────────
 function extractLettered(text) {
   const parts = text.split(/\n(?=\s*\(?[a-zA-Z]\)?[.)]\s+)/g);
   return toClauseObjects(parts);
 }
 
-// Strategy 3: bold-style header + paragraph, e.g. "DEPOSIT\nThe tenant shall..."
-// (heuristic: a short ALL-CAPS or Title-Case line followed by body text)
+// ── Strategy 3: ALL-CAPS or Title-Case header on its own line ────────────────
+//    e.g.  "DEPOSIT\nThe tenant shall..."
 function extractHeaderParagraph(text) {
-  const parts = text.split(/\n(?=[A-Z][A-Za-z \/&-]{2,40}\n)/g);
+  const parts = text.split(/\n(?=[A-Z][A-Za-z \/&\-]{2,50}\n)/g);
   return toClauseObjects(parts);
 }
 
-/**
- * Hybrid clause extractor. Runs three cheap regex strategies and keeps
- * whichever produced the most clauses (best structural match). Only
- * escalates to an LLM segmentation call if all three strategies returned
- * fewer than 3 clauses — i.e. the lease is narrative/unstructured.
- */
-export async function extractClauses(normalizedText) {
+// ── Strategy 4: keyword section headers  "Rent:", "Deposit:" etc. ───────────
+function extractKeywordHeader(text) {
+  const headerRx = /\n(?=\s*(?:Rent|Deposit|Security|Entry|Notice|Repair|Eviction|Increase|Penalty|Pet|Utili|Sublet|Arbitrat|Privacy|Abandon|Waiver|Indemni|Modif|Maintena|Termina|Vacate|Landlord|Tenant)[^.\n]{0,40}[:–—]\s)/gi;
+  const parts = text.split(headerRx);
+  return toClauseObjects(parts);
+}
+
+// ── Strategy 5: paragraph split (double newline) ─────────────────────────────
+function extractParagraphs(text) {
+  const parts = text.split(/\n{2,}/g);
+  return toClauseObjects(parts);
+}
+
+// ─── Main Export ──────────────────────────────────────────────────────────────
+
+export async function extractClauses(rawText) {
+  // Normalise line endings (\r\n → \n, lone \r → \n)
+  const text = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
   const strategies = [
-    extractNumbered(normalizedText),
-    extractLettered(normalizedText),
-    extractHeaderParagraph(normalizedText),
+    extractNumbered(text),
+    extractLettered(text),
+    extractHeaderParagraph(text),
+    extractKeywordHeader(text),
+    extractParagraphs(text),
   ];
 
+  // Pick the strategy with the most clauses
   const best = strategies.reduce((a, b) => (b.length > a.length ? b : a), []);
 
-  if (best.length >= 3) {
+  // If at least 2 clauses found, use regex result — no LLM needed
+  if (best.length >= 2) {
     return { clauses: best, method: 'regex' };
   }
 
-  // Fall back to LLM segmentation for unstructured/narrative leases.
-  const prompt = `You are analyzing a residential lease agreement. Split the following lease text into
-individual logical clauses. For each clause return an object with:
-- "clause_type": one of [deposit, entry_rights, notice_period, repairs, eviction, rent_increase,
-  discrimination, penalty, subletting, pets, utilities, arbitration, privacy, abandonment,
-  waiver, indemnity, modification, suspicious_clause, general]
-- "text": the exact clause text
-- "confidence": your confidence (0-1) that this is a correctly segmented, complete clause
+  // ── LLM segmentation for truly unstructured/narrative leases ────────────
+  try {
+    const prompt = `You are analysing a residential lease agreement. Your job is to split the text into individual logical clauses.
 
-Return a JSON array of these objects only.
+For each clause return:
+- "clause_type": one of [deposit, entry_rights, notice_period, repairs, eviction, rent_increase, discrimination, penalty, subletting, pets, utilities, arbitration, privacy, abandonment, waiver, indemnity, modification, suspicious_clause, general]
+- "text": the exact clause text as it appears
+- "confidence": 0.0–1.0
+
+Return ONLY a valid JSON array. No markdown. No explanation.
 
 LEASE TEXT:
 """
-${normalizedText.slice(0, 12000)}
+${text.slice(0, 14000)}
 """`;
 
-  const llmClauses = await callGeminiJSON(prompt);
-  const clauses = (Array.isArray(llmClauses) ? llmClauses : []).map((c) => ({
-    clause_id: nextId(),
-    clause_type: c.clause_type || 'general',
-    text: c.text,
-    page: 1,
-    confidence: typeof c.confidence === 'number' ? c.confidence : 0.7,
-    source: 'llm',
-  }));
+    const llmClauses = await callGeminiJSON(prompt, { maxTokens: 6000 });
+    const clauses = (Array.isArray(llmClauses) ? llmClauses : [])
+      .filter((c) => c && typeof c.text === 'string' && c.text.trim().length > 10)
+      .map((c) => ({
+        clause_id: nextId(),
+        clause_type: c.clause_type || guessClauseType(c.text),
+        text: c.text.trim(),
+        page: 1,
+        confidence: typeof c.confidence === 'number' ? c.confidence : 0.7,
+        source: 'llm',
+      }));
 
-  return { clauses, method: 'llm' };
+    if (clauses.length > 0) {
+      return { clauses, method: 'llm' };
+    }
+  } catch (err) {
+    console.warn('LLM clause extraction failed, using paragraph fallback:', err.message);
+  }
+
+  // ── Hard fallback: use paragraph split regardless ────────────────────────
+  const paragraphClauses = extractParagraphs(text);
+  if (paragraphClauses.length > 0) {
+    return { clauses: paragraphClauses, method: 'paragraph_fallback' };
+  }
+
+  // ── Absolute last resort: treat entire text as one clause ────────────────
+  if (text.trim().length > 20) {
+    return {
+      clauses: [{
+        clause_id: nextId(),
+        clause_type: guessClauseType(text),
+        text: text.trim().slice(0, 3000),
+        page: 1,
+        confidence: 0.5,
+        source: 'full_text_fallback',
+      }],
+      method: 'full_text_fallback',
+    };
+  }
+
+  return { clauses: [], method: 'none' };
 }
