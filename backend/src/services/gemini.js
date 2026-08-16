@@ -1,65 +1,52 @@
-// LLM gateway: tries Gemini first with multi-endpoint fallback, falls back to Groq / Ollama if configured.
+// LLM gateway using official @google/generative-ai SDK with automatic model fallbacks.
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const DEFAULT_GEMINI_ENDPOINTS = [
-  { model: 'gemini-1.5-flash-latest', version: 'v1beta' },
-  { model: 'gemini-1.5-flash', version: 'v1' },
-  { model: 'gemini-2.0-flash-exp', version: 'v1beta' },
-  { model: 'gemini-1.5-pro-latest', version: 'v1beta' },
-];
+const DEFAULT_MODELS = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash-exp'];
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function callGeminiDirect(prompt, opts = {}) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return { ok: false, status: 401, errText: 'GEMINI_API_KEY is not configured in environment variables.' };
+  const rawKey = process.env.GEMINI_API_KEY;
+  if (!rawKey || !rawKey.trim()) {
+    return { ok: false, status: 401, errText: 'GEMINI_API_KEY is not set in environment variables.' };
   }
 
-  const endpoints = process.env.GEMINI_MODEL
-    ? [{ model: process.env.GEMINI_MODEL, version: 'v1beta' }, ...DEFAULT_GEMINI_ENDPOINTS]
-    : DEFAULT_GEMINI_ENDPOINTS;
+  const apiKey = rawKey.trim();
+  const genAI = new GoogleGenerativeAI(apiKey);
 
-  let lastResult = null;
-  for (const { model, version } of endpoints) {
-    const url = `https://generativelanguage.googleapis.com/${version}/models/${model}:generateContent`;
-    const body = JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: opts.temperature ?? 0.2,
-        maxOutputTokens: opts.maxTokens ?? 2048,
-      },
-    });
+  const models = process.env.GEMINI_MODEL
+    ? [process.env.GEMINI_MODEL.trim(), ...DEFAULT_MODELS]
+    : DEFAULT_MODELS;
 
+  let lastErr = null;
+  for (const modelName of models) {
     try {
-      const res = await fetch(`${url}?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body,
+      const model = genAI.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: opts.temperature ?? 0.2,
+          maxOutputTokens: opts.maxTokens ?? 2048,
+        },
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        return { ok: true, text: data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') || '' };
+      const response = await result.response;
+      const text = response.text();
+      if (text) {
+        return { ok: true, text };
       }
-
-      const errText = await res.text();
-      lastResult = { ok: false, status: res.status, errText };
-
-      if (res.status === 404 && endpoints.length > 1) {
-        console.warn(`Gemini model '${model}' on ${version} returned 404 — trying next endpoint…`);
-        continue;
-      }
-      break;
-    } catch (fetchErr) {
-      lastResult = { ok: false, status: 500, errText: fetchErr.message };
+    } catch (err) {
+      lastErr = err.message || String(err);
+      console.warn(`Gemini SDK call to '${modelName}' failed: ${lastErr} — trying next model…`);
+      continue;
     }
   }
 
-  return lastResult || { ok: false, status: 500, errText: 'No Gemini model available' };
+  return { ok: false, status: 500, errText: lastErr || 'Failed to generate response from Gemini API.' };
 }
 
 async function callGroqDirect(prompt, opts = {}) {
-  const groqKey = process.env.GROQ_API_KEY;
+  const groqKey = process.env.GROQ_API_KEY ? process.env.GROQ_API_KEY.trim() : null;
   if (!groqKey) {
     return { ok: false, status: 401, errText: 'GROQ_API_KEY not set.' };
   }
@@ -125,31 +112,27 @@ export async function callGemini(prompt, opts = {}) {
 
   let lastError = null;
 
-  // 1. Try Gemini
+  // 1. Try Gemini via official SDK
   const apiKey = process.env.GEMINI_API_KEY;
-  if (apiKey) {
+  if (apiKey && apiKey.trim()) {
     for (let attempt = 0; attempt <= 1; attempt++) {
       const result = await callGeminiDirect(fullPrompt, opts);
       if (result.ok) return result.text;
 
-      lastError = `Gemini API (${result.status}): ${result.errText}`;
+      lastError = `Gemini API: ${result.errText}`;
 
-      if (result.status === 429) {
-        console.warn('Gemini quota exhausted (429) — trying backup provider…');
-        break;
-      }
-      if ((result.status === 500 || result.status === 503) && attempt === 0) {
-        await sleep(2000);
+      if (attempt === 0) {
+        await sleep(1500);
         continue;
       }
       break;
     }
   } else {
-    lastError = 'GEMINI_API_KEY is not set in environment variables.';
+    lastError = 'GEMINI_API_KEY is not configured in Vercel Environment Variables.';
   }
 
   // 2. Try Groq if configured
-  if (process.env.GROQ_API_KEY) {
+  if (process.env.GROQ_API_KEY && process.env.GROQ_API_KEY.trim()) {
     const result = await callGroqDirect(fullPrompt, opts);
     if (result.ok) return result.text;
     lastError = `Groq API (${result.status}): ${result.errText}`;
