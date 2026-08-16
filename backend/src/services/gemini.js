@@ -1,6 +1,11 @@
-// LLM gateway: tries Gemini first, falls back to Groq / Ollama if configured.
+// LLM gateway: tries Gemini first with multi-endpoint fallback, falls back to Groq / Ollama if configured.
 
-const DEFAULT_GEMINI_MODELS = ['gemini-1.5-flash', 'gemini-2.0-flash-exp', 'gemini-1.5-pro'];
+const DEFAULT_GEMINI_ENDPOINTS = [
+  { model: 'gemini-1.5-flash-latest', version: 'v1beta' },
+  { model: 'gemini-1.5-flash', version: 'v1' },
+  { model: 'gemini-2.0-flash-exp', version: 'v1beta' },
+  { model: 'gemini-1.5-pro-latest', version: 'v1beta' },
+];
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -10,11 +15,13 @@ async function callGeminiDirect(prompt, opts = {}) {
     return { ok: false, status: 401, errText: 'GEMINI_API_KEY is not configured in environment variables.' };
   }
 
-  const models = process.env.GEMINI_MODEL ? [process.env.GEMINI_MODEL, ...DEFAULT_GEMINI_MODELS] : DEFAULT_GEMINI_MODELS;
+  const endpoints = process.env.GEMINI_MODEL
+    ? [{ model: process.env.GEMINI_MODEL, version: 'v1beta' }, ...DEFAULT_GEMINI_ENDPOINTS]
+    : DEFAULT_GEMINI_ENDPOINTS;
 
   let lastResult = null;
-  for (const model of models) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+  for (const { model, version } of endpoints) {
+    const url = `https://generativelanguage.googleapis.com/${version}/models/${model}:generateContent`;
     const body = JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: {
@@ -23,25 +30,29 @@ async function callGeminiDirect(prompt, opts = {}) {
       },
     });
 
-    const res = await fetch(`${url}?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body,
-    });
+    try {
+      const res = await fetch(`${url}?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+      });
 
-    if (res.ok) {
-      const data = await res.json();
-      return { ok: true, text: data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') || '' };
+      if (res.ok) {
+        const data = await res.json();
+        return { ok: true, text: data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') || '' };
+      }
+
+      const errText = await res.text();
+      lastResult = { ok: false, status: res.status, errText };
+
+      if (res.status === 404 && endpoints.length > 1) {
+        console.warn(`Gemini model '${model}' on ${version} returned 404 — trying next endpoint…`);
+        continue;
+      }
+      break;
+    } catch (fetchErr) {
+      lastResult = { ok: false, status: 500, errText: fetchErr.message };
     }
-
-    const errText = await res.text();
-    lastResult = { ok: false, status: res.status, errText };
-
-    if (res.status === 404 && models.length > 1) {
-      console.warn(`Gemini model '${model}' returned 404 — trying next model…`);
-      continue;
-    }
-    break;
   }
 
   return lastResult || { ok: false, status: 500, errText: 'No Gemini model available' };
