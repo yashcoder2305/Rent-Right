@@ -6,6 +6,27 @@
 import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs';
+
+// Polyfill DOMMatrix for Node.js environments where pdfjs-dist looks for browser matrix transforms
+if (typeof globalThis.DOMMatrix === 'undefined') {
+  globalThis.DOMMatrix = class DOMMatrix {
+    constructor(init) {
+      this.a = 1; this.b = 0; this.c = 0; this.d = 1; this.e = 0; this.f = 0;
+      if (Array.isArray(init)) {
+        if (init.length >= 6) {
+          this.a = init[0]; this.b = init[1]; this.c = init[2]; this.d = init[3]; this.e = init[4]; this.f = init[5];
+        }
+      }
+    }
+    multiply(m) { return this; }
+    translate(tx = 0, ty = 0) { return this; }
+    scale(sx = 1, sy = sx) { return this; }
+    rotate(angle = 0) { return this; }
+    inverse() { return this; }
+    transformPoint(p) { return p || { x: 0, y: 0 }; }
+  };
+}
+
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 // In Node.js we must point to the worker file explicitly
