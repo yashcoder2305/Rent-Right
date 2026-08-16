@@ -1,7 +1,8 @@
 // LLM gateway using official @google/generative-ai SDK with automatic model fallbacks.
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const DEFAULT_MODELS = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash-exp'];
+// Only stable, universally-available models — no experimental endpoints
+const DEFAULT_MODELS = ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-1.0-pro', 'gemini-pro'];
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
