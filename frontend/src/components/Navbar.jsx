@@ -13,7 +13,7 @@ export default function Navbar() {
     navigate('/');
   }
 
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/';
 
   if (isAuthPage) return null;
 
