@@ -19,7 +19,10 @@ export default function Compare() {
     if (!oldId || !newId || oldId === newId) return setError('Please select two different leases to compare.');
     setLoading(true);
     try {
-      const result = await api.compare(Number(oldId), Number(newId));
+      const result = await api.compare(
+        isNaN(oldId) ? oldId : Number(oldId),
+        isNaN(newId) ? newId : Number(newId)
+      );
       setDiff(result);
     } catch (err) {
       setError(err.message || 'Comparison failed.');

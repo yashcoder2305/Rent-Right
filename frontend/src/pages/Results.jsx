@@ -65,7 +65,7 @@ export default function Results() {
     setError('');
     try {
       const blob = await api.generateLetter({
-        lease_id: Number(id),
+        lease_id: isNaN(id) ? id : Number(id),
         violation_ids: Array.from(selected),
         landlord_name: landlordName,
         landlord_address: landlordAddress,
