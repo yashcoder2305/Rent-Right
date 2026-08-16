@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="RentRight Letter Generator - Create legal notices and letters based on AI analysis.">
+    <title>RentRight | Generate Letter</title>
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { background-color: #f8fafc; }
+        .letter-main-container { max-width: 1320px; margin: 90px auto 40px; padding: 0 24px; }
+        
+        .breadcrumb-text { font-size: 13px; font-weight: 500; color: #64748b; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .breadcrumb-text a { color: #64748b; text-decoration: none; }
+        .breadcrumb-text a:hover { color: #3b82f6; text-decoration: underline; }
+        .breadcrumb-current { color: #2563eb; font-weight: 600; }
+        .letter-page-title { font-size: 32px; font-weight: 800; color: #0f172a; margin-bottom: 32px; font-family: var(--font-title); }
+
+        .letter-layout { display: grid; grid-template-columns: 320px 1fr; gap: 32px; }
+        @media (max-width: 992px) { .letter-layout { grid-template-columns: 1fr; } }
+
+        /* Left Column Styles */
+        .sidebar-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .sidebar-title { font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 20px; font-family: var(--font-title); display: flex; justify-content: space-between; align-items: center; }
+        
+        .summary-item { margin-bottom: 16px; }
+        .summary-item:last-child { margin-bottom: 0; }
+        .summary-label { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px; }
+        .summary-value { font-size: 14px; font-weight: 500; color: #334155; }
+        
+        .summary-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+        .badge-count { font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 20px; background-color: #fee2e2; color: #ef4444; }
+
+        .violation-item { border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 4px; }
+        .violation-item:last-child { margin-bottom: 0; }
+        .violation-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .violation-name { font-size: 13.5px; font-weight: 600; color: #1e293b; }
+        .v-badge { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
+        .v-badge.critical { background: #ef4444; color: #fff; }
+        .v-badge.warning { background: #f59e0b; color: #fff; }
+        .v-badge.minor { background: #3b82f6; color: #fff; }
+        .violation-desc { font-size: 12.5px; color: #64748b; }
+
+        .pro-tip-box { background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1px dashed #cbd5e1; border-radius: 12px; padding: 20px; }
+        .pro-tip-header { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 800; color: #2563eb; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+        .pro-tip-text { font-size: 13.5px; color: #475569; font-style: italic; line-height: 1.5; }
+
+        /* Right Column Styles */
+        .editor-container { position: relative; }
+        .editor-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; margin-bottom: 16px; }
+        
+        .toolbar-group { display: flex; align-items: center; gap: 8px; }
+        .toolbar-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border: 1px solid transparent; background: transparent; border-radius: 6px; color: #475569; cursor: pointer; transition: all 0.2s; }
+        .toolbar-btn:hover { background-color: #e2e8f0; color: #0f172a; }
+        .toolbar-divider { width: 1px; height: 24px; background-color: #cbd5e1; margin: 0 4px; }
+        
+        .action-btn { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+        .action-btn.outline { border: 1px solid #cbd5e1; background: #fff; color: #475569; }
+        .action-btn.outline:hover { background: #f8fafc; border-color: #94a3b8; }
+        .action-btn svg { width: 16px; height: 16px; }
+
+        .letter-paper { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 60px 80px; min-height: 800px; box-shadow: 0 10px 25px rgba(0,0,0,0.03); outline: none; font-family: var(--font-body); font-size: 15px; line-height: 1.6; color: #1e293b; }
+        @media (max-width: 768px) { .letter-paper { padding: 40px 32px; } }
+        
+        .letter-paper p { margin-bottom: 16px; }
+        .letter-paper ol, .letter-paper ul { margin-left: 24px; margin-bottom: 16px; }
+        .letter-paper li { margin-bottom: 8px; }
+
+        .regenerate-btn { position: fixed; bottom: 40px; right: 40px; background-color: #1d4ed8; color: #fff; border: none; padding: 14px 24px; border-radius: 30px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; font-family: var(--font-body); box-shadow: 0 8px 20px rgba(29, 78, 216, 0.3); transition: transform 0.2s, box-shadow 0.2s; z-index: 100; }
+        .regenerate-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(29, 78, 216, 0.4); background-color: #1e40af; }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation Header -->
+                <header class="landing-header">
+        <div class="header-logo" style="cursor: pointer; display: flex; align-items: center;" onclick="window.location.href='landing.html'">
+            <img src="logo.svg" alt="RentRight Logo" style="height: 48px; width: auto; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        </div>
+        <nav class="landing-nav">
+            <a href="dashboard.html" class="nav-link-landing">Dashboard</a>
+            <a href="analyze.html" class="nav-link-landing">Upload</a>
+            <a href="results.html" class="nav-link-landing">Results</a>
+            <a href="compare.html" class="nav-link-landing">Compare</a>
+            <a href="history.html" class="nav-link-landing">History</a>
+            <a href="letter.html" class="nav-link-landing active">Generate Letter</a>
+        </nav>
+        <div class="landing-actions">
+            <!-- Notification Bell Icon -->
+            <button class="nav-icon-btn" aria-label="Notifications" id="btnNotif">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+            </button>
+            <!-- Settings Gear Icon -->
+            <button class="nav-icon-btn" aria-label="Settings" id="btnSettings">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+            </button>
+            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="User Profile" class="user-profile-avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid #e2e8f0; cursor: pointer;">
+        </div>
+    </header>
+
+    <main class="letter-main-container">
+        
+        <div class="breadcrumb-text">
+            <a href="history.html">History</a> &gt; <a href="results.html">Lease Analysis</a> &gt; <span class="breadcrumb-current">Generate Letter</span>
+        </div>
+        <h1 class="letter-page-title">Generate Legal Letter</h1>
+
+        <div class="letter-layout">
+            <!-- Left Sidebar -->
+            <div class="letter-sidebar">
+                
+                <div class="sidebar-card">
+                    <h3 class="sidebar-title">Lease Summary</h3>
+                    
+                    <div class="summary-item">
+                        <span class="summary-label">Property</span>
+                        <span class="summary-value">1242 Redwood Terrace, Apt 4B</span>
+                    </div>
+                    
+                    <div class="summary-row">
+                        <div class="summary-item" style="margin-bottom:0;">
+                            <span class="summary-label">Tenant</span>
+                            <span class="summary-value">Sarah J. Miller</span>
+                        </div>
+                        <div class="summary-item" style="margin-bottom:0;">
+                            <span class="summary-label">Landlord</span>
+                            <span class="summary-value">Apex Realty Group</span>
+                        </div>
+                    </div>
+
+                    <div class="summary-item">
+                        <span class="summary-label">Analyzed Date</span>
+                        <span class="summary-value">October 14, 2023</span>
+                    </div>
+                </div>
+
+                <div class="sidebar-card">
+                    <h3 class="sidebar-heading">Detected Violations</h3>
+                    
+                    <label class="violation-item" style="cursor: pointer; display: flex; align-items: flex-start; gap: 8px;">
+                        <input type="checkbox" class="violation-checkbox" value="fee" checked style="margin-top: 4px;">
+                        <div style="flex: 1;">
+                            <div class="violation-header">
+                                <span class="violation-name">Unlawful Late Fee</span>
+                                <span class="v-badge critical">CRITICAL</span>
+                            </div>
+                            <span class="violation-desc">Section 4.2: Exceeds 5% cap.</span>
+                        </div>
+                    </label>
+
+                    <label class="violation-item" style="cursor: pointer; display: flex; align-items: flex-start; gap: 8px;">
+                        <input type="checkbox" class="violation-checkbox" value="deposit" checked style="margin-top: 4px;">
+                        <div style="flex: 1;">
+                            <div class="violation-header">
+                                <span class="violation-name">Security Deposit Cap</span>
+                                <span class="v-badge warning">WARNING</span>
+                            </div>
+                            <span class="violation-desc">Section 2.1: Non-compliance.</span>
+                        </div>
+                    </label>
+
+                    <label class="violation-item" style="cursor: pointer; display: flex; align-items: flex-start; gap: 8px;">
+                        <input type="checkbox" class="violation-checkbox" value="maintenance" checked style="margin-top: 4px;">
+                        <div style="flex: 1;">
+                            <div class="violation-header">
+                                <span class="violation-name">Maintenance Clause</span>
+                                <span class="v-badge minor">MINOR</span>
+                            </div>
+                            <span class="violation-desc">Section 9.0: Vague language.</span>
+                        </div>
+                    </label>
+                    
+                    <button id="btnRegenerate" style="width: 100%; margin-top: 16px; background-color: #2563eb; color: #fff; border: none; padding: 10px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background-color: 0.2s;">
+                        Generate Letter with Selected
+                    </button>
+                </div>
+
+                <div class="pro-tip-box">
+                    <div class="pro-tip-header">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                        AI PRO-TIP
+                    </div>
+                    <p class="pro-tip-text">"Including specific RCW or Civil Code citations in your letter increases resolution probability by 34%."</p>
+                </div>
+
+            </div>
+
+            <!-- Right Content Area -->
+            <div class="editor-container">
+                
+                <div class="editor-toolbar">
+                    <div class="toolbar-group">
+                        <button class="toolbar-btn" style="font-weight: 800; font-family: var(--font-title); font-size: 16px;">B</button>
+                        <button class="toolbar-btn" style="font-style: italic; font-family: var(--font-title); font-size: 16px;">I</button>
+                        <button class="toolbar-btn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                        </button>
+                        <div class="toolbar-divider"></div>
+                        <button class="toolbar-btn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3l-3 2.7"></path></svg>
+                        </button>
+                        <button class="toolbar-btn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"></path><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"></path></svg>
+                        </button>
+                    </div>
+                    
+                    <div class="toolbar-group">
+                        <button class="action-btn outline">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            Download PDF
+                        </button>
+                        <button class="action-btn outline">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            Copy
+                        </button>
+                        <button class="action-btn outline">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                            Email
+                        </button>
+                    </div>
+                </div>
+
+                <div class="letter-paper" contenteditable="true">
+                    <p style="text-align: right; margin-bottom: 40px;">October 24, 2023</p>
+                    
+                    <p>
+                        <strong>To: Apex Realty Group</strong><br>
+                        Compliance Department<br>
+                        900 Urban Ave, Suite 100<br>
+                        Seattle, WA 98101
+                    </p>
+
+                    <p><strong>RE: Formal Notice of Lease Non-Compliance - 1242 Redwood Terrace, Apt 4B</strong></p>
+
+                    <p>Dear Management Team,</p>
+                    <p>I am writing this formal letter to address several concerns identified during a professional review of the residential lease agreement for the above-referenced property. It has come to my attention that certain provisions within the current lease structure do not align with jurisdictional housing regulations.</p>
+                    
+                    <p>Specifically, we identify the following points of contention:</p>
+                    
+                    <ol>
+                        <li><strong>Unlawful Late Fees:</strong> Section 4.2 of the lease stipulates a late fee of $150.00 for payments received after the 3rd. Pursuant to local ordinance, late fees may not exceed 5% of the total monthly rent ($2,200), which caps the legal limit at $110.00.</li>
+                        <li><strong>Security Deposit Cap:</strong> The collected deposit of $4,500 exceeds the legal maximum of two months' rent as mandated by RCW § 59.18.260.</li>
+                        <li><strong>Maintenance Responsibility:</strong> Clause 9.0 vaguely assigns "all general repairs" to the tenant. Under the Implied Warranty of Habitability, essential structural and utility maintenance remains the non-delegable duty of the landlord.</li>
+                    </ol>
+
+                    <p>I kindly request a written response acknowledging these discrepancies and a revised lease addendum correcting these points by November 1, 2023. I value our tenancy relationship and aim to resolve these technical inaccuracies promptly and amicably.</p>
+                    
+                    <p style="margin-top: 40px; margin-bottom: 60px;">Sincerely,</p>
+                    
+                    <p>Sarah J. Miller</p>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <button class="regenerate-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+        Regenerate with AI
+    </button>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const btnRegenerate = document.getElementById('btnRegenerate');
+            const letterPaper = document.querySelector('.letter-paper');
+            const checkboxes = document.querySelectorAll('.violation-checkbox');
+
+            const violationsData = {
+                'fee': '<strong>Unlawful Late Fees:</strong> Section 4.2 of the lease stipulates a late fee of $150.00 for payments received after the 3rd. Pursuant to local ordinance, late fees may not exceed 5% of the total monthly rent ($2,200), which caps the legal limit at $110.00.',
+                'deposit': '<strong>Security Deposit Cap:</strong> The collected deposit of $4,500 exceeds the legal maximum of two months\' rent as mandated by RCW § 59.18.260.',
+                'maintenance': '<strong>Maintenance Responsibility:</strong> Clause 9.0 vaguely assigns "all general repairs" to the tenant. Under the Implied Warranty of Habitability, essential structural and utility maintenance remains the non-delegable duty of the landlord.'
+            };
+
+            btnRegenerate.addEventListener('click', () => {
+                const selected = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+                
+                if (selected.length === 0) {
+                    alert('Please select at least one violation to generate a letter.');
+                    return;
+                }
+
+                let listHtml = '<ol>';
+                selected.forEach(val => {
+                    if (violationsData[val]) {
+                        listHtml += `<li>${violationsData[val]}</li>`;
+                    }
+                });
+                listHtml += '</ol>';
+
+                const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+                const newLetter = `
+                    <p style="text-align: right; margin-bottom: 40px;">${today}</p>
+                    
+                    <p>
+                        <strong>To: Apex Realty Group</strong><br>
+                        Compliance Department<br>
+                        900 Urban Ave, Suite 100<br>
+                        Seattle, WA 98101
+                    </p>
+
+                    <p><strong>RE: Formal Notice of Lease Non-Compliance - 1242 Redwood Terrace, Apt 4B</strong></p>
+
+                    <p>Dear Management Team,</p>
+                    <p>I am writing this formal letter to address several concerns identified during a professional review of the residential lease agreement for the above-referenced property. It has come to my attention that certain provisions within the current lease structure do not align with jurisdictional housing regulations.</p>
+                    
+                    <p>Specifically, we identify the following points of contention:</p>
+                    
+                    ${listHtml}
+
+                    <p>I kindly request a written response acknowledging these discrepancies and a revised lease addendum correcting these points by November 1, 2023. I value our tenancy relationship and aim to resolve these technical inaccuracies promptly and amicably.</p>
+                    
+                    <p style="margin-top: 40px; margin-bottom: 60px;">Sincerely,</p>
+                    
+                    <p>Sarah J. Miller</p>
+                `;
+                
+                letterPaper.innerHTML = newLetter;
+            });
+        });
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="RentRight Lease Analysis Tool - Upload or paste your lease agreement to scan for hidden fees, illegal terms, and tenant protections.">
+    <title>RentRight | Upload Rental Agreement</title>
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="analyze-page-bg">
+
+    <!-- Navigation Header -->
+                <header class="landing-header">
+        <div class="header-logo" style="cursor: pointer; display: flex; align-items: center;" onclick="window.location.href='landing.html'">
+            <img src="logo.svg" alt="RentRight Logo" style="height: 48px; width: auto; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        </div>
+        <nav class="landing-nav">
+            <a href="dashboard.html" class="nav-link-landing">Dashboard</a>
+            <a href="analyze.html" class="nav-link-landing active">Upload</a>
+            <a href="results.html" class="nav-link-landing">Results</a>
+            <a href="compare.html" class="nav-link-landing">Compare</a>
+            <a href="history.html" class="nav-link-landing">History</a>
+            <a href="letter.html" class="nav-link-landing">Generate Letter</a>
+        </nav>
+        <div class="landing-actions">
+            <!-- Notification Bell Icon -->
+            <button class="nav-icon-btn" aria-label="Notifications" id="btnNotif">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+            </button>
+            <!-- Settings Gear Icon -->
+            <button class="nav-icon-btn" aria-label="Settings" id="btnSettings">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+            </button>
+            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="User Profile" class="user-profile-avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid #e2e8f0; cursor: pointer;">
+        </div>
+    </header>
+
+    <!-- Main Content wrapper -->
+    <main class="analyze-wrapper">
+        <div class="heading-section">
+            <h1 class="analyze-heading font-outfit" style="font-size: 36px; font-weight: 800; color: #0f172a; margin-bottom: 12px;">Upload Rental Agreement</h1>
+            <p class="analyze-subtitle" style="font-size: 16px; color: #64748b;">Upload PDF or DOCX for AI-powered legal analysis</p>
+        </div>
+
+        <!-- Main Card -->
+        <div class="analyze-card" id="analyzeCard" style="max-width: 640px; width: 100%; padding: 40px; background: #ffffff; border-radius: 20px; border: 1px solid rgba(226, 232, 240, 0.8); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);">
+            
+            <!-- Upload Area -->
+            <div class="upload-dropzone" id="dropzone" style="border: 2px dashed #cbd5e1; border-radius: 16px; padding: 60px 40px; text-align: center; background-color: #fafbfe; transition: all 0.2s; cursor: pointer;">
+                <input type="file" id="fileInput" accept=".pdf,.docx" class="hidden-file-input" style="display: none;" aria-label="Lease file upload">
+                <div class="dropzone-inner" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <div class="cloud-icon-box" style="width: 64px; height: 64px; border-radius: 50%; background-color: #eff6ff; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; color: #2563eb;">
+                        <svg class="cloud-svg" style="width: 28px; height: 28px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21.2 15c.6-1.1.8-2.3.8-3.5C22 7.4 18.6 4 14.5 4c-3.1 0-5.8 1.9-6.8 4.7C6.5 8.3 5.3 8 4 8 1.8 8 0 9.8 0 12c0 2 1.5 3.7 3.5 3.9"></path>
+                            <polyline points="16 16 12 12 8 16"></polyline>
+                            <line x1="12" y1="12" x2="12" y2="21"></line>
+                        </svg>
+                    </div>
+                    <h3 class="font-outfit" style="font-size: 20px; font-weight: 700; color: #1e293b; margin: 0 0 8px 0;">Drag and drop your lease here</h3>
+                    <p style="font-size: 14px; color: #64748b; margin: 0 0 24px 0;">Supported formats: PDF, DOCX (Max 20MB)</p>
+                    <button type="button" class="btn-browse font-outfit" id="browseBtn" style="background-color: #ffffff; border: 1.5px solid #2563eb; color: #2563eb; padding: 10px 24px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;">Choose File</button>
+                </div>
+            </div>
+            
+            <!-- File details display (hidden by default) -->
+            <div class="file-details-box hidden" id="fileDetails">
+                <div class="file-info-row" style="display: flex; align-items: center; padding: 16px; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <svg class="file-icon-svg" style="width: 24px; height: 24px; color: #2563eb; margin-right: 12px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    <div class="file-meta" style="flex: 1; text-align: left;">
+                        <span class="file-name" id="fileNameDisplay" style="font-weight: 600; color: #0f172a; font-size: 14px; display: block; word-break: break-all;">lease_agreement.pdf</span>
+                        <span class="file-size" id="fileSizeDisplay" style="font-size: 12px; color: #64748b; display: block;">2.4 MB</span>
+                    </div>
+                    <button type="button" class="btn-remove-file" id="removeFileBtn" style="border: none; background: transparent; font-size: 24px; color: #94a3b8; cursor: pointer; padding: 0 8px; line-height: 1;">&times;</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit controls centered below the card -->
+        <div style="text-align: center; margin-top: 24px; width: 100%; max-width: 640px; margin-left: auto; margin-right: auto;">
+            <button type="button" class="btn-scan font-outfit" id="scanBtn" style="width: 100%; max-width: 320px; background-color: #1d4ed8; color: #ffffff; border: none; padding: 14px 28px; border-radius: 8px; font-weight: 600; font-size: 15px; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15); display: inline-block;">Analyze Lease</button>
+            <p style="font-size: 12px; color: #64748b; margin-top: 16px; line-height: 1.5;">By uploading, you agree to our <a href="#" style="color: #2563eb; text-decoration: underline;">Terms of Service</a>. Your data is encrypted and used only for analysis.</p>
+        </div>
+
+        <!-- Three Feature Badges Centered Row -->
+        <div class="features-badge-row" style="display: flex; justify-content: center; align-items: center; gap: 32px; margin-top: 60px; margin-bottom: 24px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 8px; color: #94a3b8; font-size: 12.5px; font-weight: 500;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <span>Bank-Grade Security</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; color: #94a3b8; font-size: 12.5px; font-weight: 500;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span>Legal Compliance Checked</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; color: #94a3b8; font-size: 12.5px; font-weight: 500;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+                <span>AI Analysis in &lt; 60s</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Notification container -->
+    <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+    <!-- Scripts -->
+    <script src="analyze.js"></script>
+</body>
+
+</html>

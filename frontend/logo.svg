@@ -1,0 +1,11 @@
+<svg viewBox="0 0 240 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@600&amp;family=Outfit:wght@800;900&amp;display=swap');
+    </style>
+  </defs>
+  <rect width="240" height="200" fill="#131719" rx="16"/>
+  <text x="120" y="120" font-family="'Outfit', sans-serif" font-weight="900" font-size="120" fill="#4ade80" text-anchor="middle">R</text>
+  <text x="120" y="160" font-family="'Outfit', sans-serif" font-weight="800" font-size="28" fill="#4ade80" text-anchor="middle" letter-spacing="3">RENTRIGHT</text>
+  <text x="120" y="180" font-family="'Inter', sans-serif" font-weight="600" font-size="12" fill="#4ade80" text-anchor="middle" letter-spacing="5">SINCE 2026</text>
+</svg>

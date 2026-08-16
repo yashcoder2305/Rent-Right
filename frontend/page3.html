@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>RentRight — Letter Generator</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body style="position: relative; overflow-x: hidden; background-color: var(--bg-light);">
+
+  <!-- Decorative Animated Glowing Blobs in Background -->
+  <div class="glow-blob blue" style="opacity: 0.06; top: 10%; left: -5%;"></div>
+  <div class="glow-blob cyan" style="opacity: 0.06; bottom: 10%; right: -5%;"></div>
+
+  <!-- Sticky Navigation Header -->
+  <header class="site-header">
+    <div class="header-container">
+      <a class="brand" href="landing.html" aria-label="RentRight Home">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 11.5L12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V11.5z" fill="var(--brand)"/>
+        </svg>
+        <span>Rent<span class="brand-text">Right</span></span>
+      </a>
+      
+      <nav class="nav-center" aria-label="Main navigation">
+        <a href="landing.html">Home</a>
+        <a href="#">Legal Aid</a>
+        <a href="landing.html#features">Resources</a>
+      </nav>
+      <div class="nav-right">
+        <a href="index.html" class="btn-signin">Login</a>
+        <a href="signup.html" class="btn-join">Sign Up</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Letter Generator Dual Columns Layout -->
+  <main class="letter-generator-layout">
+    
+    <!-- Left Column: Settings and Input Form -->
+    <section>
+      <!-- Letter Type Selector -->
+      <div style="margin-bottom: 24px;">
+        <h3 style="font-size: 14px; font-weight: 700; color: var(--navy); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Letter Type</h3>
+        <div class="letter-type-list">
+          <button class="letter-type-btn active" id="btn-type-deposit" onclick="setLetterType('deposit')">
+            <span>Security Deposit Dispute</span>
+            <span class="checkmark-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+          </button>
+          
+          <button class="letter-type-btn" id="btn-type-maintenance" onclick="setLetterType('maintenance')">
+            <span>Maintenance Request</span>
+            <span class="checkmark-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+          </button>
+
+          <button class="letter-type-btn" id="btn-type-termination" onclick="setLetterType('termination')">
+            <span>Early Termination Notice</span>
+            <span class="checkmark-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+          </button>
+
+          <button class="letter-type-btn" id="btn-type-illegal" onclick="setLetterType('illegal')">
+            <span>Illegal Clause Notice</span>
+            <span class="checkmark-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Referencing Lease Box -->
+      <div class="ref-lease-card">
+        <div class="ref-lease-left">
+          <div class="ref-lease-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+          </div>
+          <div class="ref-lease-text">
+            <h5>Referencing Lease</h5>
+            <p>42 Maple St — Unit 3B</p>
+          </div>
+        </div>
+        <a href="analyze.html" class="ref-lease-change">Change</a>
+      </div>
+
+      <!-- Tone Control Segmented -->
+      <div style="margin-bottom: 24px;">
+        <h3 style="font-size: 14px; font-weight: 700; color: var(--navy); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Communication Tone</h3>
+        <div class="tone-segmented-control">
+          <button class="tone-btn" id="tone-polite" onclick="setTone('polite')">Polite</button>
+          <button class="tone-btn active" id="tone-formal" onclick="setTone('formal')">Formal</button>
+          <button class="tone-btn" id="tone-firm" onclick="setTone('firm')">Firm</button>
+        </div>
+      </div>
+
+      <!-- Details Inputs -->
+      <div class="login-form">
+        <div class="form-group">
+          <label for="tenantNameInput" class="label">Tenant Name</label>
+          <input id="tenantNameInput" type="text" placeholder="Jordan Smith" class="no-icon">
+        </div>
+
+        <div class="form-group">
+          <label for="landlordNameInput" class="label">Landlord / Management Name</label>
+          <input id="landlordNameInput" type="text" placeholder="e.g., Skyline Properties LLC" class="no-icon">
+        </div>
+
+        <div class="form-group">
+          <label for="propertyAddressInput" class="label">Property Address</label>
+          <input id="propertyAddressInput" type="text" placeholder="42 Maple St, Unit 3B, New York, NY 10012" value="42 Maple St, Unit 3B, New York, NY 10012" class="no-icon">
+        </div>
+
+        <div class="form-group">
+          <label for="issueDescInput" class="label">Issue Description</label>
+          <textarea id="issueDescInput" placeholder="Provide details about the security deposit, dates of occupancy, and why you are disputing the withholding..." rows="5" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(16, 24, 40, 0.15); font-family: var(--font-body); font-size: 14px; outline: none; transition: border-color 0.2s; resize: vertical;"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Column: Draft Preview A4 sheet (contenteditable) -->
+    <section>
+      <div class="preview-toolbar">
+        <div class="preview-toolbar-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--brand);">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+          <span>Draft Preview</span>
+        </div>
+        <div class="preview-actions">
+          <button class="btn secondary" id="copyBtn" onclick="copyDraft()">
+            <span style="display:flex;align-items:center;gap:6px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              Copy
+            </span>
+          </button>
+          
+          <button class="btn secondary" id="emailBtn" onclick="emailDraft()">
+            <span style="display:flex;align-items:center;gap:6px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
+              Email
+            </span>
+          </button>
+          
+          <button class="btn primary" id="downloadPdfBtn" onclick="downloadPdf()">
+            <span style="display:flex;align-items:center;gap:6px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Download PDF
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Contenteditable legal paper preview container -->
+      <div class="preview-sheet-container">
+        <div class="preview-sheet-paper" contenteditable="true" id="letterPaper">
+          <!-- Letter templates get injected here by Javascript -->
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-main-container">
+      <div class="footer-brand-side">
+        <a class="logo" href="landing.html">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 11.5L12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V11.5z" fill="var(--brand)"/>
+          </svg>
+          <span>Rent<span>Right</span></span>
+        </a>
+        <p>Empowering tenants through technology and accessible legal information.</p>
+      </div>
+      
+      <div class="footer-columns">
+        <div class="footer-col">
+          <h4>Resources</h4>
+          <ul>
+            <li><a href="landing.html#how-it-works">How It Works</a></li>
+            <li><a href="landing.html#features">Features</a></li>
+            <li><a href="#">Accessibility</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Support</h4>
+          <ul>
+            <li><a href="#">Contact Support</a></li>
+            <li><a href="#">Legal Disclaimer</a></li>
+            <li><a href="#">Terms of Service</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Legal</h4>
+          <ul>
+            <li><a href="#">Privacy Policy</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2024 RentRight Advocacy. All rights reserved. Empowering tenants through technology.</p>
+    </div>
+  </footer>
+
+  <script src="main.js" defer></script>
+</body>
+</html>
+

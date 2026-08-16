@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="RentRight Pro Dashboard - Portfolio insights, lease audits, risk distribution, and legal dispute letter generators.">
+    <title>RentRight Pro | Legal Intelligence Dashboard</title>
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="dashboard-page-body">
+
+    <!-- Navigation Header -->
+                <header class="landing-header">
+        <div class="header-logo" style="cursor: pointer; display: flex; align-items: center;" onclick="window.location.href='landing.html'">
+            <img src="logo.svg" alt="RentRight Logo" style="height: 48px; width: auto; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        </div>
+        <nav class="landing-nav">
+            <a href="dashboard.html" class="nav-link-landing active">Dashboard</a>
+            <a href="analyze.html" class="nav-link-landing">Upload</a>
+            <a href="results.html" class="nav-link-landing">Results</a>
+            <a href="compare.html" class="nav-link-landing">Compare</a>
+            <a href="history.html" class="nav-link-landing">History</a>
+            <a href="letter.html" class="nav-link-landing">Generate Letter</a>
+        </nav>
+        <div class="landing-actions">
+            <!-- Notification Bell Icon -->
+            <button class="nav-icon-btn" aria-label="Notifications" id="btnNotif">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+            </button>
+            <!-- Settings Gear Icon -->
+            <button class="nav-icon-btn" aria-label="Settings" id="btnSettings">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+            </button>
+            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="User Profile" class="user-profile-avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid #e2e8f0; cursor: pointer;">
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="dashboard-main-premium">
+        
+        <!-- Header Panel Title and Buttons -->
+        <section class="dashboard-title-row">
+            <div class="title-block">
+                <h1 class="dashboard-page-title font-outfit">Legal Intelligence Dashboard</h1>
+                <p class="dashboard-page-subtitle">Welcome back. Your portfolio is currently at <span id="riskCapacityText" class="bold-text">0.0%</span> risk capacity.</p>
+            </div>
+            <a href="analyze.html" class="btn-upload-lease font-outfit">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px; vertical-align:middle;">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                Upload Lease
+            </a>
+        </section>
+
+        <!-- Stats 4-Card Summary Grid -->
+        <section class="stats-summary-grid">
+            
+            <!-- Card 1: Documents Scanned -->
+            <div class="stat-card-premium">
+                <div class="stat-card-top">
+                    <div class="stat-card-icon-box" style="background-color:#eef2ff; color:#1e6df9;">
+                        <!-- Document SVG -->
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                    </div>
+                    <span class="stat-card-badge-green font-outfit">+12%</span>
+                </div>
+                <div class="stat-card-content">
+                    <span class="stat-card-label">Documents Uploaded</span>
+                    <span class="stat-card-value font-outfit" id="stat-docs">0</span>
+                </div>
+            </div>
+
+            <!-- Card 2: Violations Found -->
+            <div class="stat-card-premium">
+                <div class="stat-card-top">
+                    <div class="stat-card-icon-box" style="background-color:#fef2f2; color:#ef4444;">
+                        <!-- Alert Triangle SVG -->
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                    </div>
+                    <span class="stat-card-badge-red font-outfit">-3%</span>
+                </div>
+                <div class="stat-card-content">
+                    <span class="stat-card-label">Violations Found</span>
+                    <span class="stat-card-value font-outfit" id="stat-violations" style="color:#ef4444;">0</span>
+                </div>
+            </div>
+
+            <!-- Card 3: Avg Risk Score -->
+            <div class="stat-card-premium">
+                <div class="stat-card-top">
+                    <div class="stat-card-icon-box" style="background-color:#e0f2fe; color:#0284c7;">
+                        <!-- Gauge SVG -->
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                    </div>
+                </div>
+                <div class="stat-card-content">
+                    <span class="stat-card-label">Avg Risk Score</span>
+                    <span class="stat-card-value font-outfit" id="stat-risk">0 / 100</span>
+                </div>
+            </div>
+
+            <!-- Card 4: Letters Generated -->
+            <div class="stat-card-premium">
+                <div class="stat-card-top">
+                    <div class="stat-card-icon-box" style="background-color:#fff7ed; color:#f97316;">
+                        <!-- Envelope SVG -->
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                            <polyline points="22,6 12,13 2,6"></polyline>
+                        </svg>
+                    </div>
+                    <span class="stat-card-badge-blue font-outfit">Active</span>
+                </div>
+                <div class="stat-card-content">
+                    <span class="stat-card-label">Letters Generated</span>
+                    <span class="stat-card-value font-outfit" id="stat-letters" style="color:#f97316;">0</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Dashboard Split Columns Grid -->
+        <div class="dashboard-split-grid">
+            
+            <!-- Left Side Column: Velocity Chart and Audit list -->
+            <div class="left-split-col">
+                <!-- Compliance Velocity Card -->
+                <div class="dashboard-block-card">
+                    <div class="block-card-header">
+                        <div class="header-text">
+                            <h3 class="block-card-title font-outfit">Compliance Velocity</h3>
+                            <p class="block-card-subtitle">Monthly breakdown of document processing volume.</p>
+                        </div>
+                        <div class="dropdown-mock font-outfit">
+                            <span>Last 6 Months</span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <!-- Bar Chart Area -->
+                    <div class="bar-chart-container" id="barChartContainer">
+                        <!-- Jan Bar -->
+                        <div class="chart-bar-col">
+                            <div class="chart-bar-track">
+                                <div class="chart-bar-fill" id="bar-jan">
+                                    <div class="chart-bar-tooltip">0</div>
+                                </div>
+                            </div>
+                            <span class="chart-bar-label font-outfit">Jan</span>
+                        </div>
+                        <!-- Feb Bar -->
+                        <div class="chart-bar-col">
+                            <div class="chart-bar-track">
+                                <div class="chart-bar-fill" id="bar-feb">
+                                    <div class="chart-bar-tooltip">0</div>
+                                </div>
+                            </div>
+                            <span class="chart-bar-label font-outfit">Feb</span>
+                        </div>
+                        <!-- Mar Bar -->
+                        <div class="chart-bar-col">
+                            <div class="chart-bar-track">
+                                <div class="chart-bar-fill" id="bar-mar">
+                                    <div class="chart-bar-tooltip">0</div>
+                                </div>
+                            </div>
+                            <span class="chart-bar-label font-outfit">Mar</span>
+                        </div>
+                        <!-- Apr Bar -->
+                        <div class="chart-bar-col">
+                            <div class="chart-bar-track">
+                                <div class="chart-bar-fill" id="bar-apr">
+                                    <div class="chart-bar-tooltip">0</div>
+                                </div>
+                            </div>
+                            <span class="chart-bar-label font-outfit">Apr</span>
+                        </div>
+                        <!-- May Bar -->
+                        <div class="chart-bar-col">
+                            <div class="chart-bar-track">
+                                <div class="chart-bar-fill" id="bar-may">
+                                    <div class="chart-bar-tooltip">0</div>
+                                </div>
+                            </div>
+                            <span class="chart-bar-label font-outfit">May</span>
+                        </div>
+                        <!-- Jun Bar -->
+                        <div class="chart-bar-col">
+                            <div class="chart-bar-track">
+                                <div class="chart-bar-fill" id="bar-jun">
+                                    <div class="chart-bar-tooltip">0</div>
+                                </div>
+                            </div>
+                            <span class="chart-bar-label font-outfit">Jun</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Lease Audits Card -->
+                <div class="dashboard-block-card">
+                    <div class="block-card-header">
+                        <h3 class="block-card-title font-outfit">Recent Lease Audits</h3>
+                        <a href="history.html" class="link-view-all font-outfit">View All</a>
+                    </div>
+                    
+                    <!-- Table wrapper -->
+                    <div class="table-scroll-wrapper">
+                        <table class="dashboard-table" id="auditsTable">
+                            <thead>
+                                <tr>
+                                    <th>LEASE NAME</th>
+                                    <th>UPLOAD DATE</th>
+                                    <th>RISK SCORE</th>
+                                    <th>STATUS</th>
+                                    <th style="width:40px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditsTableBody">
+                                <!-- JS will populate audit rows here or show empty state -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side Column: AI Accelerators, Risk donut, Activity -->
+            <div class="right-split-col">
+                <!-- AI Accelerators Card -->
+                <div class="dashboard-block-card">
+                    <h3 class="block-card-title font-outfit" style="margin-bottom: 16px;">AI Accelerators</h3>
+                    
+                    <div class="accelerators-list">
+                        <!-- Compare Leases Row -->
+                        <a href="compare.html" class="accelerator-item-row">
+                            <div class="item-left-block">
+                                <div class="accelerator-icon-bg" style="color:#1e6df9; background-color:#eef2ff;">
+                                    <!-- Compare SVG Icon -->
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M16 3h5v5"></path>
+                                        <path d="M8 3H3v5"></path>
+                                        <path d="M12 2v20"></path>
+                                        <path d="M17 21h-2"></path>
+                                        <path d="M7 21H9"></path>
+                                    </svg>
+                                </div>
+                                <div class="accelerator-meta">
+                                    <span class="accel-title font-outfit">Compare Leases</span>
+                                    <span class="accel-desc">Identify changes and differences.</span>
+                                </div>
+                            </div>
+                            <svg class="accel-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </a>
+
+                        <!-- Generate Letter Row -->
+                        <a href="letter.html" class="accelerator-item-row">
+                            <div class="item-left-block">
+                                <div class="accelerator-icon-bg" style="color:#15803d; background-color:#eefaf4;">
+                                    <!-- Pencil/File Icon -->
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 20h9"></path>
+                                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                                    </svg>
+                                </div>
+                                <div class="accelerator-meta">
+                                    <span class="accel-title font-outfit">Generate Letter</span>
+                                    <span class="accel-desc">Write formal dispute & request notices.</span>
+                                </div>
+                            </div>
+                            <svg class="accel-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Risk Distribution Donut Card -->
+                <div class="dashboard-block-card">
+                    <h3 class="block-card-title font-outfit" style="margin-bottom: 20px;">Risk Distribution</h3>
+                    
+                    <!-- Donut Chart Wrapper -->
+                    <div class="donut-chart-circle" id="donutRing">
+                        <div class="donut-chart-inner">
+                            <span class="donut-percent font-outfit" id="donutPercentText">0%</span>
+                            <span class="donut-sub font-outfit">SECURE</span>
+                        </div>
+                    </div>
+
+                    <!-- Risk Distribution Breakdown list -->
+                    <div class="risk-distribution-breakdown">
+                        <div class="dist-row-item">
+                            <div class="dist-dot-label">
+                                <span class="dist-color-dot" style="background-color:#1e6df9;"></span>
+                                <span class="dist-label-text">Compliant</span>
+                            </div>
+                            <span class="dist-count-num font-outfit" id="dist-compliant">0</span>
+                        </div>
+                        <div class="dist-row-item">
+                            <div class="dist-dot-label">
+                                <span class="dist-color-dot" style="background-color:#f59e0b;"></span>
+                                <span class="dist-label-text">Warning</span>
+                            </div>
+                            <span class="dist-count-num font-outfit" id="dist-warning">0</span>
+                        </div>
+                        <div class="dist-row-item">
+                            <div class="dist-dot-label">
+                                <span class="dist-color-dot" style="background-color:#ef4444;"></span>
+                                <span class="dist-label-text">Critical</span>
+                            </div>
+                            <span class="dist-count-num font-outfit" id="dist-critical">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity Card -->
+                <div class="dashboard-block-card">
+                    <h3 class="block-card-title font-outfit" style="margin-bottom: 20px;">Recent Activity</h3>
+                    
+                    <!-- Vertical Timeline wrapper -->
+                    <div class="timeline-activity-wrapper" id="activityTimeline">
+                        <!-- JS will populate timeline events here -->
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </main>
+
+    <!-- Toast Notification container -->
+    <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check auth state
+            const isLoggedIn = !!localStorage.getItem('username');
+            if (!isLoggedIn) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // Initials & Profile Setup
+            const avatarInitials = document.getElementById('avatarInitials');
+            const savedInitials = localStorage.getItem('initials') || 'JD';
+            if (avatarInitials) {
+                avatarInitials.textContent = savedInitials;
+                avatarInitials.addEventListener('click', () => {
+                    if (confirm('Are you sure you want to log out?')) {
+                        localStorage.clear();
+                        window.location.href = 'landing.html';
+                    }
+                });
+            }
+
+            // Toast system helper
+            function showToast(message, type = 'success') {
+                const container = document.getElementById('toastContainer');
+                if (!container) return;
+                const toast = document.createElement('div');
+                toast.className = `toast toast-${type}`;
+                let icon = '';
+                if (type === 'success') {
+                    icon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success-color)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+                } else {
+                    icon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--error-color)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
+                }
+                toast.innerHTML = `<div class="toast-content">${icon}<span class="toast-msg">${message}</span></div><button class="toast-close-btn" style="border:none;background:transparent;cursor:pointer;color:#888;font-size:16px;">&times;</button>`;
+                container.appendChild(toast);
+                const timer = setTimeout(() => { toast.remove(); }, 3500);
+                toast.querySelector('.toast-close-btn').addEventListener('click', () => {
+                    clearTimeout(timer);
+                    toast.remove();
+                });
+            }
+
+            // Load or initialize Dashboard state in localStorage
+            let stats = JSON.parse(localStorage.getItem('rentright_dashboard_stats'));
+            if (!stats) {
+                stats = {
+                    docs_uploaded: 0,
+                    violations_found: 0,
+                    avg_risk_score: 0.0,
+                    letters_generated: 0,
+                    audits: [],
+                    activities: [],
+                    compliance_velocity: [0, 0, 0, 0, 0, 0],
+                    risk_distribution: { compliant: 0, warning: 0, critical: 0 }
+                };
+                localStorage.setItem('rentright_dashboard_stats', JSON.stringify(stats));
+            }
+
+            // Bind values to UI
+            const riskCapacityText = document.getElementById('riskCapacityText');
+            const statDocs = document.getElementById('stat-docs');
+            const statViolations = document.getElementById('stat-violations');
+            const statRisk = document.getElementById('stat-risk');
+            const statLetters = document.getElementById('stat-letters');
+
+            if (riskCapacityText) riskCapacityText.textContent = `${stats.avg_risk_score.toFixed(1)}%`;
+            if (statDocs) statDocs.textContent = stats.docs_uploaded.toLocaleString();
+            if (statViolations) statViolations.textContent = stats.violations_found.toLocaleString();
+            if (statRisk) statRisk.textContent = `${stats.avg_risk_score.toFixed(1)} / 100`;
+            if (statLetters) statLetters.textContent = stats.letters_generated.toLocaleString();
+
+            // Render Compliance Velocity Bar Heights
+            // The mockup chart lists Jan, Feb, Mar, Apr, May, Jun (indexes 0-5)
+            const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun'];
+            let maxCount = Math.max(...stats.compliance_velocity, 1);
+            
+            // Map velocities to bar heights
+            months.forEach((m, idx) => {
+                const fillEl = document.getElementById(`bar-${m}`);
+                if (fillEl) {
+                    const count = stats.compliance_velocity[idx];
+                    const percent = count > 0 ? (count / maxCount) * 80 + 10 : 0; // min 10% height if count > 0, max 90%
+                    
+                    fillEl.style.height = count > 0 ? `${percent}%` : '4px';
+                    if (count > 0) {
+                        fillEl.classList.add('active');
+                        const tooltip = fillEl.querySelector('.chart-bar-tooltip');
+                        if (tooltip) {
+                            tooltip.textContent = count.toString();
+                            tooltip.style.opacity = '0.9'; // Always show mockup indicator value for filled bars
+                        }
+                    }
+                }
+            });
+
+            // Render Donut Ring Risk distribution chart
+            const donutRing = document.getElementById('donutRing');
+            const donutPercentText = document.getElementById('donutPercentText');
+            const distCompliant = document.getElementById('dist-compliant');
+            const distWarning = document.getElementById('dist-warning');
+            const distCritical = document.getElementById('dist-critical');
+
+            if (distCompliant) distCompliant.textContent = stats.risk_distribution.compliant.toString();
+            if (distWarning) distWarning.textContent = stats.risk_distribution.warning.toString();
+            if (distCritical) distCritical.textContent = stats.risk_distribution.critical.toString();
+
+            const securePercent = stats.docs_uploaded > 0 ? Math.round(((stats.docs_uploaded - stats.risk_distribution.critical) / stats.docs_uploaded) * 100) : 0;
+            if (donutPercentText) donutPercentText.textContent = `${securePercent}%`;
+
+            if (donutRing) {
+                if (stats.docs_uploaded === 0) {
+                    donutRing.style.background = '#edf2f7';
+                } else {
+                    donutRing.style.background = `conic-gradient(#1e6df9 0% ${securePercent}%, #edf2f7 ${securePercent}% 100%)`;
+                }
+            }
+
+            // Render Recent Lease Audits Table Rows
+            const auditsBody = document.getElementById('auditsTableBody');
+            if (auditsBody) {
+                if (stats.audits.length === 0) {
+                    auditsBody.innerHTML = `
+                        <tr>
+                            <td colspan="5">
+                                <div class="empty-state-table" style="text-align:center; padding:40px 10px; color:#64748b;">
+                                    <div style="font-size:32px; margin-bottom:8px;">📄</div>
+                                    <h4 style="font-weight:600; color:#0f172a; margin-bottom:4px; font-size:14px;">No lease audits yet</h4>
+                                    <p style="font-size:12px; max-width:280px; margin:0 auto;">Upload your first lease agreement in the scanner to identify risks.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    auditsBody.innerHTML = stats.audits.map(audit => `
+                        <tr>
+                            <td>
+                                <div class="lease-name-cell">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#64748b; margin-right:8px; vertical-align:middle;">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                        <polyline points="14 2 14 8 20 8"></polyline>
+                                    </svg>
+                                    <span class="bold-text font-outfit" style="font-size:13px; color:#0f172a;">${audit.name}</span>
+                                </div>
+                            </td>
+                            <td style="color:#64748b; font-size:13px;">${audit.date}</td>
+                            <td>
+                                <span class="score-badge font-outfit ${audit.level || 'low'}">${audit.score}</span>
+                            </td>
+                            <td>
+                                <div class="status-cell">
+                                    <span class="status-dot ${audit.status.toLowerCase().replace(' ', '-')}"></span>
+                                    <span style="font-size:13px; font-weight:500;">${audit.status}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <button class="action-dots-btn" aria-label="More options">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                                        <circle cx="12" cy="12" r="1"></circle>
+                                        <circle cx="12" cy="5" r="1"></circle>
+                                        <circle cx="12" cy="19" r="1"></circle>
+                                    </svg>
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            }
+
+            // Render Recent Activity Timeline
+            const activityTimeline = document.getElementById('activityTimeline');
+            if (activityTimeline) {
+                if (stats.activities.length === 0) {
+                    activityTimeline.innerHTML = `
+                        <div class="empty-state-text" style="color:#64748b; text-align:center; padding:24px 10px; font-size:13px;">
+                            No recent activity found.
+                        </div>
+                    `;
+                } else {
+                    activityTimeline.innerHTML = stats.activities.map(act => {
+                        let iconSvg = '';
+                        let colorClass = 'blue';
+                        if (act.type === 'Lease Approved') {
+                            iconSvg = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#1e6df9" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+                            colorClass = 'blue';
+                        } else if (act.type === 'Letter Sent') {
+                            iconSvg = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2.5" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>`;
+                            colorClass = 'orange';
+                        } else {
+                            iconSvg = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#15803d" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
+                            colorClass = 'green';
+                        }
+                        
+                        return `
+                            <div class="timeline-item">
+                                <div class="timeline-icon ${colorClass}">
+                                    ${iconSvg}
+                                </div>
+                                <div class="timeline-content">
+                                    <span class="timeline-title font-outfit">${act.type}</span>
+                                    <p class="timeline-desc-text">${act.text}</p>
+                                    <span class="timeline-time">${act.time}</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            }
+
+            // Notification/Settings mock toasts
+            document.getElementById('btnNotif').addEventListener('click', () => {
+                showToast('You have no new notifications.', 'success');
+            });
+
+            document.getElementById('btnSettings').addEventListener('click', () => {
+                showToast('Settings window coming soon.', 'success');
+            });
+        });
+    </script>
+</body>
+</html>
+
