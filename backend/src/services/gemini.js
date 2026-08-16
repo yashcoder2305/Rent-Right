@@ -2,41 +2,44 @@
 // All callers use callGemini / callGeminiJSON — no changes needed elsewhere.
 
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const DEFAULT_GEMINI_MODELS = ['gemini-1.5-flash', 'gemini-2.0-flash-exp', 'gemini-1.5-pro'];
 
-const GROQ_KEY = process.env.GROQ_API_KEY;
-const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.1-8b-instant';
-const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-
-/** Sleep helper. */
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-// ---------------------------------------------------------------------------
-// Gemini call
-// ---------------------------------------------------------------------------
 async function callGeminiDirect(prompt, opts = {}) {
-  const body = JSON.stringify({
-    contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: {
-      temperature: opts.temperature ?? 0.2,
-      maxOutputTokens: opts.maxTokens ?? 2048,
-    },
-  });
+  const models = process.env.GEMINI_MODEL ? [process.env.GEMINI_MODEL, ...DEFAULT_GEMINI_MODELS] : DEFAULT_GEMINI_MODELS;
 
-  const res = await fetch(`${GEMINI_URL}?key=${GEMINI_KEY}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body,
-  });
+  let lastResult = null;
+  for (const model of models) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+    const body = JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: opts.temperature ?? 0.2,
+        maxOutputTokens: opts.maxTokens ?? 2048,
+      },
+    });
 
-  if (res.ok) {
-    const data = await res.json();
-    return { ok: true, text: data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') || '' };
+    const res = await fetch(`${url}?key=${GEMINI_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      return { ok: true, text: data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') || '' };
+    }
+
+    const errText = await res.text();
+    lastResult = { ok: false, status: res.status, errText };
+
+    if (res.status === 404 && models.length > 1) {
+      console.warn(`Gemini model '${model}' returned 404 — trying next model in list…`);
+      continue;
+    }
+    break;
   }
 
-  const errText = await res.text();
-  return { ok: false, status: res.status, errText };
+  return lastResult || { ok: false, status: 500, errText: 'No Gemini model available' };
 }
 
 // ---------------------------------------------------------------------------
