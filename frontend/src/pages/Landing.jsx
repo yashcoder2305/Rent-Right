@@ -6,247 +6,260 @@ export default function Landing() {
   const targetRoute = user ? '/upload' : '/register';
 
   return (
-    <div className="bg-slate-50 min-h-screen">
-      {/* HERO SECTION WITH BACKGROUND IMAGE */}
-      <section
-        className="relative overflow-hidden pt-12 pb-20 lg:pt-16 lg:pb-28 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url('/hero_bg.png')` }}
-      >
-        {/* Soft White Overlay for readability */}
-        <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/90 to-white/60 backdrop-blur-[2px]" />
+    <div className="landing-page-bg">
 
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
-          {/* Left Content */}
-          <div className="lg:col-span-6 space-y-6">
-            <h1 className="font-outfit text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.15]">
-              Know Your Rights. <br />
-              <span className="text-blue-600">Protect Your Home.</span>
-            </h1>
+      {/* ── Header ── */}
+      <header className="landing-header">
+        <div className="header-logo" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1a35cc" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+          <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: '20px', fontWeight: 800, color: 'var(--primary-color)', letterSpacing: '-0.5px' }}>RentRight</span>
+        </div>
 
-            <p className="text-slate-700 text-lg sm:text-xl leading-relaxed font-normal max-w-xl">
-              Upload your lease to instantly identify illegal clauses, understand your obligations in plain English, and generate professional dispute letters.
-            </p>
+        <nav className="landing-nav">
+          <a href="#how-it-works" className="nav-link-landing">How It Works</a>
+          <a href="#features" className="nav-link-landing">Features</a>
+          <Link to="/upload" className="nav-link-landing">Upload</Link>
+          <Link to="/compare" className="nav-link-landing">Compare</Link>
+        </nav>
 
-            <div className="flex flex-wrap items-center gap-4 pt-2">
-              <Link
-                to={targetRoute}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl px-7 py-3.5 text-base flex items-center gap-2.5 transition-all shadow-lg shadow-blue-600/30 hover:shadow-blue-600/40 hover:-translate-y-0.5 active:translate-y-0"
-              >
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        <div className="landing-cta-group">
+          <Link to="/login" className="btn-login-outline">Sign In</Link>
+          <Link to={targetRoute} className="btn-get-started">Get Started</Link>
+        </div>
+      </header>
+
+      {/* ── Hero Section ── */}
+      <section className="hero-landing-section">
+        <div className="hero-container">
+          <div className="privacy-badge-pill">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <span>Bank-Grade Privacy Guaranteed</span>
+          </div>
+
+          <h1 className="hero-main-title font-outfit">Scan your lease.<br />Spot the risks.</h1>
+          <p className="hero-main-subtitle">
+            Our AI identifies hidden clauses, illegal fees, and predatory terms in seconds.
+            99.2% accuracy in clause detection for total peace of mind.
+          </p>
+
+          {/* Drag-drop card */}
+          <div className="drag-drop-card" onClick={() => { if (!user) window.location.href='/register'; else window.location.href='/upload'; }}>
+            <div className="cloud-icon-circle" style={{ backgroundColor: '#eefaf4' }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/>
+              </svg>
+            </div>
+            <h3 className="drag-drop-title font-outfit">Drop your lease agreement here</h3>
+            <p className="drag-drop-subtitle">Supports PDF, JPG, and PNG files up to 25MB</p>
+            <div className="drag-drop-actions">
+              <Link to={targetRoute} className="btn-browse" onClick={e => e.stopPropagation()}>Browse Files</Link>
+              <span className="divider-or-text">or</span>
+              <Link to={targetRoute} style={{ fontSize: '13px', color: 'var(--primary-color)', fontWeight: 600, textDecoration: 'none' }} onClick={e => e.stopPropagation()}>
+                Paste Link
+              </Link>
+            </div>
+          </div>
+
+          {/* Stats row */}
+          <div className="stats-icon-grid">
+            <div className="stat-icon-item">
+              <div className="icon-outer-circle">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
                 </svg>
-                <span className="text-white font-bold">Scan My Lease</span>
-              </Link>
-
-              <a
-                href="#how-it-works"
-                className="bg-white hover:bg-slate-100 text-slate-800 font-bold rounded-xl px-6 py-3.5 text-base border border-slate-300 transition-all shadow-sm"
-              >
-                How it Works
-              </a>
-            </div>
-
-            <div className="flex items-center gap-6 pt-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
-              <span className="flex items-center gap-1.5"><span className="text-emerald-600 text-base">✓</span> MODEL TENANCY ACT 2021</span>
-              <span className="flex items-center gap-1.5"><span className="text-emerald-600 text-base">✓</span> CONSTITUTION OF INDIA</span>
-            </div>
-          </div>
-
-          {/* Right Hero Visual Card */}
-          <div className="lg:col-span-6 relative">
-            {/* Background Glow */}
-            <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/20 to-blue-400/10 rounded-3xl blur-2xl -z-10" />
-
-            <div className="bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-2xl shadow-slate-300/60 relative">
-              {/* Card Header */}
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="font-mono text-xs font-bold uppercase tracking-widest text-blue-600">
-                    LEASE AGREEMENT — ANALYSIS
-                  </span>
-                </div>
-                <span className="font-mono text-[11px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full">
-                  AI ACTIVE
-                </span>
               </div>
-
-              {/* Gauge & Metrics Row */}
-              <div className="grid grid-cols-12 gap-4 items-center mb-6">
-                {/* Score Gauge */}
-                <div className="col-span-5 flex flex-col items-center justify-center p-4 bg-slate-50 rounded-xl border border-slate-100">
-                  <div className="relative w-20 h-20 flex items-center justify-center">
-                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                      <path
-                        className="text-slate-200"
-                        strokeWidth="3.5"
-                        stroke="currentColor"
-                        fill="none"
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      />
-                      <path
-                        className="text-blue-600"
-                        strokeDasharray="92, 100"
-                        strokeWidth="3.5"
-                        strokeLinecap="round"
-                        stroke="currentColor"
-                        fill="none"
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      />
-                    </svg>
-                    <span className="absolute font-bold text-slate-800 text-lg">92%</span>
-                  </div>
-                  <span className="text-xs font-semibold text-slate-500 mt-2">Legal Health Score</span>
-                </div>
-
-                {/* Counter Badges */}
-                <div className="col-span-7 space-y-2.5">
-                  <div className="bg-red-50 border border-red-200/80 rounded-xl p-3 flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-red-700">1 Illegal Clause</span>
-                    <span className="font-mono font-bold text-red-900 text-base">🚨</span>
-                  </div>
-                  <div className="bg-amber-50 border border-amber-200/80 rounded-xl p-3 flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-amber-800">1 Unfair Term</span>
-                    <span className="font-mono font-bold text-amber-900 text-base">⚠️</span>
-                  </div>
-                </div>
+              <div className="stat-text-box">
+                <span className="stat-number font-outfit">99.2%</span>
+                <span className="stat-label">ACCURACY RATE</span>
               </div>
-
-              {/* Annotated Clause Floating Cards */}
-              <div className="space-y-3">
-                <div className="border border-red-300 bg-red-50/90 rounded-xl p-3.5 shadow-sm transform transition hover:-translate-y-0.5">
-                  <div className="flex items-center gap-2 text-xs font-bold text-red-800">
-                    <span className="w-2 h-2 rounded-full bg-red-600" />
-                    Illegal waiver of landlord liability found.
-                  </div>
-                </div>
-
-                <div className="border border-amber-300 bg-amber-50/90 rounded-xl p-3.5 shadow-sm transform transition hover:-translate-y-0.5">
-                  <div className="flex items-center gap-2 text-xs font-bold text-amber-900">
-                    <span className="w-2 h-2 rounded-full bg-amber-600" />
-                    Excessive late fee (15% of rent).
-                  </div>
-                </div>
+            </div>
+            <div className="stat-divider" />
+            <div className="stat-icon-item">
+              <div className="icon-outer-circle">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+              </div>
+              <div className="stat-text-box">
+                <span className="stat-number font-outfit">AES-256</span>
+                <span className="stat-label">ENCRYPTION</span>
+              </div>
+            </div>
+            <div className="stat-divider" />
+            <div className="stat-icon-item">
+              <div className="icon-outer-circle">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+              </div>
+              <div className="stat-text-box">
+                <span className="stat-number font-outfit">&lt; 15s</span>
+                <span className="stat-label">PROCESSING TIME</span>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* THREE SIMPLE STEPS SECTION */}
-      <section id="how-it-works" className="py-20 bg-white border-y border-slate-200/80">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <h2 className="font-outfit text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-            Empowering You in Three Simple Steps
-          </h2>
-          <div className="w-12 h-1 bg-blue-600 rounded-full mx-auto mt-4 mb-16" />
+      {/* ── 3 Steps Section ── */}
+      <section id="how-it-works" className="section-steps-explain">
+        <div className="container-centered">
+          <h2 className="steps-main-title font-outfit">Analyze in 3 simple steps</h2>
+          <p className="steps-main-subtitle">Professional real estate technology, simplified for you.</p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-            {/* Step 1 */}
-            <div className="flex flex-col items-center text-center p-6 rounded-2xl hover:bg-slate-50 transition-colors">
-              <div className="w-16 h-16 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 text-2xl mb-6 shadow-inner">
-                📤
+          <div className="steps-cards-grid">
+            <div className="step-card-premium">
+              <span className="watermark-number font-outfit">1</span>
+              <div className="step-card-header">
+                <div className="step-icon-bg-square">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                  </svg>
+                </div>
+                <h3 className="step-title font-outfit">Upload</h3>
               </div>
-              <h3 className="font-outfit text-xl font-bold text-slate-900 mb-3">Upload</h3>
-              <p className="text-slate-600 text-sm leading-relaxed max-w-xs font-medium">
-                Securely upload your lease agreement in PDF or image format.
-              </p>
+              <p className="step-desc">Securely upload your document. We strip all PII before processing.</p>
             </div>
 
-            {/* Step 2 */}
-            <div className="flex flex-col items-center text-center p-6 rounded-2xl hover:bg-slate-50 transition-colors">
-              <div className="w-16 h-16 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 text-2xl mb-6 shadow-inner">
-                🔍
+            <div className="step-card-premium">
+              <span className="watermark-number font-outfit">2</span>
+              <div className="step-card-header">
+                <div className="step-icon-bg-square">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                  </svg>
+                </div>
+                <h3 className="step-title font-outfit">Analyze</h3>
               </div>
-              <h3 className="font-outfit text-xl font-bold text-slate-900 mb-3">Analyze</h3>
-              <p className="text-slate-600 text-sm leading-relaxed max-w-xs font-medium">
-                Our AI scans for legal violations and unfair terms specific to your local laws.
-              </p>
+              <p className="step-desc">Our legal-trained AI scans for 150+ types of predatory clauses and compares to local tenant laws.</p>
             </div>
 
-            {/* Step 3 */}
-            <div className="flex flex-col items-center text-center p-6 rounded-2xl hover:bg-slate-50 transition-colors">
-              <div className="w-16 h-16 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 text-2xl mb-6 shadow-inner">
-                👍
+            <div className="step-card-premium">
+              <span className="watermark-number font-outfit">3</span>
+              <div className="step-card-header">
+                <div className="step-icon-bg-square">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  </svg>
+                </div>
+                <h3 className="step-title font-outfit">Protect</h3>
               </div>
-              <h3 className="font-outfit text-xl font-bold text-slate-900 mb-3">Act</h3>
-              <p className="text-slate-600 text-sm leading-relaxed max-w-xs font-medium">
-                Get a plain-English breakdown and generate a formal letter to your landlord.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* POWERFUL TOOLS SECTION */}
-      <section id="features" className="py-20 bg-slate-50">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="mb-14 text-center max-w-2xl mx-auto">
-            <h2 className="font-outfit text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-              Powerful Tools for Every Tenant
-            </h2>
-            <p className="text-slate-600 text-base mt-3 font-medium">
-              Advanced technology meets legal expertise.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-            {/* Feature 1 */}
-            <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-              <span className="font-mono text-[11px] font-bold uppercase tracking-wider bg-teal-50 text-teal-700 border border-teal-200 px-3 py-1 rounded-full inline-block mb-4">
-                LEGAL COMPLIANCE
-              </span>
-              <h3 className="font-outfit text-2xl font-bold text-slate-900 mb-3">Violation Detection</h3>
-              <p className="text-slate-600 text-sm leading-relaxed mb-6 font-medium">
-                Instantly check if your lease violates state or local regulations. We flag prohibited terms like illegal entry clauses, unauthorized security deposit limits, and liability waivers before you sign.
-              </p>
-              <div className="bg-red-50 border border-red-200 rounded-xl p-3.5 flex items-center gap-3">
-                <span className="bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded">🚩 Illegal Term</span>
-                <span className="text-xs text-red-900 font-bold">Landlord entry without 24hr written notice</span>
-              </div>
-            </div>
-
-            {/* Feature 2 */}
-            <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center font-bold text-xl mb-4">
-                📝
-              </div>
-              <h3 className="font-outfit text-2xl font-bold text-slate-900 mb-3">Plain English Explainer</h3>
-              <p className="text-slate-600 text-sm leading-relaxed mb-6 font-medium">
-                Legal contracts are intentionally confusing. Our AI translates dense jargon into easy-to-understand summaries, letting you know exactly what rules you are agreeing to regarding pets, guests, subleases, and maintenance.
-              </p>
-              <div className="bg-slate-100 border border-slate-200 rounded-xl p-3.5 text-xs text-slate-700 italic font-medium">
-                &ldquo;Translates legal jargon like &apos;indemnify and hold harmless&apos; into straightforward warnings.&rdquo;
-              </div>
-            </div>
-          </div>
-
-          {/* Feature 3: Big Royal Blue Banner */}
-          <div className="bg-blue-600 text-white rounded-3xl p-8 sm:p-12 shadow-xl shadow-blue-600/30 relative overflow-hidden">
-            <div className="max-w-2xl relative z-10">
-              <h3 className="font-outfit text-3xl font-extrabold text-white mb-4">Dispute Letter Generator</h3>
-              <p className="text-blue-100 text-base leading-relaxed mb-8 font-medium">
-                Landlord ignoring repairs or refusing to return your security deposit? Instantly generate a formal, legally structured dispute letter. Our templates cite relevant tenant-landlord laws for your zip code, ready to download, sign, and mail.
-              </p>
-              <Link
-                to={targetRoute}
-                className="bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl px-6 py-3 border border-white/40 transition-all inline-flex items-center gap-2 text-sm backdrop-blur-sm shadow-sm"
-              >
-                Generate Dispute Letter →
-              </Link>
+              <p className="step-desc">Receive a detailed report with risk scores, suggested edits, and legal context for negotiation.</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="bg-slate-900 text-slate-400 text-xs py-10 border-t border-slate-800">
-        <div className="max-w-7xl mx-auto px-6 flex flex-wrap items-center justify-between gap-4">
-          <p>© {new Date().getFullYear()} RentRight. Empowering tenants with AI legal analysis.</p>
-          <div className="flex gap-6 font-medium">
-            <a href="#how-it-works" className="hover:text-white transition-colors">How it Works</a>
-            <a href="#features" className="hover:text-white transition-colors">Features</a>
-            <Link to="/login" className="hover:text-white transition-colors">Sign in</Link>
+      {/* ── Features Section ── */}
+      <section id="features" style={{ padding: '72px 48px', background: '#fff', borderBottom: '1px solid rgba(203,213,225,0.4)' }}>
+        <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+            <h2 className="steps-main-title font-outfit">Powerful Tools for Every Tenant</h2>
+            <p className="steps-main-subtitle">Advanced technology meets legal expertise.</p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginBottom: '28px' }}>
+            {/* Feature card 1 */}
+            <div style={{ background: '#f8fafc', borderRadius: '16px', padding: '28px', border: '1px solid rgba(203,213,225,0.5)', transition: 'var(--transition-base)' }}>
+              <div style={{ width: '44px', height: '44px', background: '#eef2ff', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a35cc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </div>
+              <h3 className="font-outfit" style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-dark)', marginBottom: '8px' }}>Violation Detection</h3>
+              <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', lineHeight: 1.65 }}>Instantly flag prohibited terms like illegal entry clauses, unauthorized security deposit limits, and liability waivers before you sign.</p>
+            </div>
+
+            {/* Feature card 2 */}
+            <div style={{ background: '#f8fafc', borderRadius: '16px', padding: '28px', border: '1px solid rgba(203,213,225,0.5)', transition: 'var(--transition-base)' }}>
+              <div style={{ width: '44px', height: '44px', background: '#eef2ff', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a35cc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+              </div>
+              <h3 className="font-outfit" style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-dark)', marginBottom: '8px' }}>Plain English Explainer</h3>
+              <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', lineHeight: 1.65 }}>Our AI translates dense legal jargon into easy-to-understand summaries about pets, guests, subleases, and maintenance rules.</p>
+            </div>
+
+            {/* Feature card 3 */}
+            <div style={{ background: '#f8fafc', borderRadius: '16px', padding: '28px', border: '1px solid rgba(203,213,225,0.5)', transition: 'var(--transition-base)' }}>
+              <div style={{ width: '44px', height: '44px', background: '#eef2ff', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a35cc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/>
+                  <polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/>
+                </svg>
+              </div>
+              <h3 className="font-outfit" style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-dark)', marginBottom: '8px' }}>Lease Comparison</h3>
+              <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', lineHeight: 1.65 }}>Cross-reference multiple lease drafts side-by-side to track changes and spot differences between versions.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Testimonial ── */}
+      <section className="section-testimonial">
+        <div className="testimonial-card-container">
+          <div className="testimonial-grid">
+            <div className="testimonial-image-col">
+              <img
+                src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&q=80"
+                alt="Sarah Chen, Senior Real Estate Attorney"
+              />
+            </div>
+            <div className="testimonial-text-col">
+              <div className="star-rating-row">
+                {[...Array(5)].map((_, i) => <span key={i} className="star-el">★</span>)}
+              </div>
+              <blockquote className="testimonial-quote font-outfit">
+                "As a real estate professional, I've seen countless tenants sign leases with 'silent' clauses that cost them thousands later. RentRight's scanner is the first tool I've seen that actually matches the level of scrutiny a human attorney provides. It's a game-changer for transparency."
+              </blockquote>
+              <div className="testimonial-author font-outfit">Sarah Chen</div>
+              <div className="testimonial-author-title">Senior Real Estate Attorney & Property Advisor</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA Banner ── */}
+      <section className="section-dark-cta-banner">
+        <div className="cta-banner-container">
+          <div className="cta-left-content">
+            <h2 className="cta-title font-outfit">Ready to sign with confidence?</h2>
+            <p className="cta-subtitle">Join 50,000+ renters using RentRight Pro technology.</p>
+          </div>
+          <div className="cta-right-actions">
+            <Link to={targetRoute} className="btn-cta-green font-outfit">Get Started Now</Link>
+            <Link to="/upload" className="btn-cta-outline font-outfit">View Sample Report</Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer className="landing-footer-premium">
+        <div className="footer-container-inner">
+          <div>
+            <div className="footer-brand font-outfit">RentRight <span style={{ color: '#1e6df9' }}>Pro</span></div>
+            <p className="footer-copyright-text">© {new Date().getFullYear()} RentRight Pro. All rights reserved.</p>
+          </div>
+          <div className="footer-right-links">
+            <a href="#how-it-works" className="footer-link-item">How It Works</a>
+            <a href="#features" className="footer-link-item">Features</a>
+            <Link to="/login" className="footer-link-item">Sign In</Link>
+            <Link to="/register" className="footer-link-item">Create Account</Link>
+            <a href="#" className="footer-link-item">Privacy Policy</a>
+            <a href="#" className="footer-link-item">Terms of Service</a>
           </div>
         </div>
       </footer>

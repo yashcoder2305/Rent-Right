@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,8 +6,8 @@
 
 body {
   font-family: 'Inter', sans-serif;
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: #ffffff;
+  color: #1e293b;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -15,37 +15,32 @@ html {
   scroll-behavior: smooth;
 }
 
-.font-outfit {
-  font-family: 'Outfit', sans-serif;
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
-/* Explicit fallback helpers for primary brand buttons to guarantee 100% visibility & contrast */
 .btn-primary {
-  background-color: #2563eb !important;
+  background-color: #0f172a !important;
   color: #ffffff !important;
 }
 
 .btn-primary:hover {
-  background-color: #1d4ed8 !important;
+  background-color: #334155 !important;
 }
 
-.bg-brand-600 {
-  background-color: #2563eb !important;
+.bg-brand {
+  background-color: #0f172a !important;
 }
 
-.text-brand-600 {
-  color: #2563eb !important;
+.text-brand {
+  color: #0f172a !important;
 }
 
-.border-brand-200 {
-  border-color: #bfdbfe !important;
-}
-
-.bg-brand-50 {
-  background-color: #eff6ff !important;
+.border-brand {
+  border-color: #0f172a !important;
 }
 
 .focus-ring:focus-visible {
-  outline: 2px solid #2563eb;
+  outline: 2px solid #0f172a;
   outline-offset: 2px;
 }
