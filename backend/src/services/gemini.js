@@ -1,10 +1,15 @@
-// LLM gateway: tries Gemini first, falls back to Groq on 429 quota errors.
-// All callers use callGemini / callGeminiJSON — no changes needed elsewhere.
+// LLM gateway: tries Gemini first, falls back to Groq / Ollama if configured.
 
-const GEMINI_KEY = process.env.GEMINI_API_KEY;
 const DEFAULT_GEMINI_MODELS = ['gemini-1.5-flash', 'gemini-2.0-flash-exp', 'gemini-1.5-pro'];
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 async function callGeminiDirect(prompt, opts = {}) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return { ok: false, status: 401, errText: 'GEMINI_API_KEY is not configured in environment variables.' };
+  }
+
   const models = process.env.GEMINI_MODEL ? [process.env.GEMINI_MODEL, ...DEFAULT_GEMINI_MODELS] : DEFAULT_GEMINI_MODELS;
 
   let lastResult = null;
@@ -18,7 +23,7 @@ async function callGeminiDirect(prompt, opts = {}) {
       },
     });
 
-    const res = await fetch(`${url}?key=${GEMINI_KEY}`, {
+    const res = await fetch(`${url}?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body,
@@ -33,7 +38,7 @@ async function callGeminiDirect(prompt, opts = {}) {
     lastResult = { ok: false, status: res.status, errText };
 
     if (res.status === 404 && models.length > 1) {
-      console.warn(`Gemini model '${model}' returned 404 — trying next model in list…`);
+      console.warn(`Gemini model '${model}' returned 404 — trying next model…`);
       continue;
     }
     break;
@@ -42,22 +47,23 @@ async function callGeminiDirect(prompt, opts = {}) {
   return lastResult || { ok: false, status: 500, errText: 'No Gemini model available' };
 }
 
-// ---------------------------------------------------------------------------
-// Groq call (OpenAI-compatible)
-// ---------------------------------------------------------------------------
 async function callGroqDirect(prompt, opts = {}) {
-  if (!GROQ_KEY) {
-    return { ok: false, status: 401, errText: 'GROQ_API_KEY is not set in backend/.env' };
+  const groqKey = process.env.GROQ_API_KEY;
+  if (!groqKey) {
+    return { ok: false, status: 401, errText: 'GROQ_API_KEY not set.' };
   }
 
-  const res = await fetch(GROQ_URL, {
+  const groqModel = process.env.GROQ_MODEL || 'llama-3.1-8b-instant';
+  const groqUrl = 'https://api.groq.com/openai/v1/chat/completions';
+
+  const res = await fetch(groqUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${GROQ_KEY}`,
+      Authorization: `Bearer ${groqKey}`,
     },
     body: JSON.stringify({
-      model: GROQ_MODEL,
+      model: groqModel,
       messages: [{ role: 'user', content: prompt }],
       temperature: opts.temperature ?? 0.2,
       max_tokens: opts.maxTokens ?? 2048,
@@ -73,24 +79,19 @@ async function callGroqDirect(prompt, opts = {}) {
   return { ok: false, status: res.status, errText };
 }
 
-// ---------------------------------------------------------------------------
-// Ollama call (Local)
-// ---------------------------------------------------------------------------
-const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.2';
-
 async function callOllamaDirect(prompt, opts = {}) {
+  const ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
+  const ollamaModel = process.env.OLLAMA_MODEL || 'llama3.2';
+
   try {
-    const res = await fetch(`${OLLAMA_URL}/api/generate`, {
+    const res = await fetch(`${ollamaUrl}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: OLLAMA_MODEL,
+        model: ollamaModel,
         prompt: prompt,
         stream: false,
-        options: {
-          temperature: opts.temperature ?? 0.2,
-        },
+        options: { temperature: opts.temperature ?? 0.2 },
       }),
     });
 
@@ -102,19 +103,10 @@ async function callOllamaDirect(prompt, opts = {}) {
     const errText = await res.text();
     return { ok: false, status: res.status, errText: `Ollama error: ${errText}` };
   } catch (err) {
-    return { ok: false, status: 500, errText: `Cannot connect to Ollama at ${OLLAMA_URL}. Is it running?` };
+    return { ok: false, status: 500, errText: `Cannot connect to Ollama at ${ollamaUrl}.` };
   }
 }
 
-// ---------------------------------------------------------------------------
-// Public API — same interface as before
-// ---------------------------------------------------------------------------
-
-/**
- * Calls Gemini with automatic Groq -> Ollama fallback on quota errors (429).
- * @param {string} prompt
- * @param {object} opts - { json, temperature, maxTokens }
- */
 export async function callGemini(prompt, opts = {}) {
   const fullPrompt = opts.json
     ? `${prompt}\n\nRespond with ONLY valid JSON. No markdown code fences, no preamble, no explanation — just the JSON.`
@@ -123,61 +115,45 @@ export async function callGemini(prompt, opts = {}) {
   let lastError = null;
 
   // 1. Try Gemini
-  if (GEMINI_KEY) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (apiKey) {
     for (let attempt = 0; attempt <= 1; attempt++) {
       const result = await callGeminiDirect(fullPrompt, opts);
       if (result.ok) return result.text;
-      
-      lastError = `Gemini API error (${result.status}): ${result.errText}`;
-      
-      // 429 = quota exhausted → fall through to Groq immediately.
-      if (result.status === 429) {
-        console.warn(`Gemini quota exhausted (429) — falling back to Groq (${GROQ_MODEL})…`);
-        break; // break the retry loop, move to next provider
-      }
 
-      // Other transient errors (500, 503) — wait briefly then retry once.
+      lastError = `Gemini API (${result.status}): ${result.errText}`;
+
+      if (result.status === 429) {
+        console.warn('Gemini quota exhausted (429) — trying backup provider…');
+        break;
+      }
       if ((result.status === 500 || result.status === 503) && attempt === 0) {
-        console.warn(`Gemini ${result.status} — retrying in 3s…`);
-        await sleep(3000);
+        await sleep(2000);
         continue;
       }
-      
-      break; // Not a transient or quota error, move to next provider.
+      break;
     }
   } else {
-    lastError = 'GEMINI_API_KEY not set.';
+    lastError = 'GEMINI_API_KEY is not set in environment variables.';
   }
 
-  // 2. Fallback to Groq
-  if (GROQ_KEY) {
-    console.warn(`Calling Groq...`);
+  // 2. Try Groq if configured
+  if (process.env.GROQ_API_KEY) {
     const result = await callGroqDirect(fullPrompt, opts);
     if (result.ok) return result.text;
-    
-    lastError = `Groq API error (${result.status}): ${result.errText}`;
-    
-    // 429 = Groq quota/rate limit exhausted → fall through to Ollama immediately.
-    if (result.status === 429) {
-      console.warn(`Groq quota exhausted (429) — falling back to local Ollama (${OLLAMA_MODEL})…`);
-    } else {
-      console.warn(`Groq failed: ${lastError} — falling back to local Ollama…`);
-    }
-  } else {
-    lastError = lastError ? `${lastError} | GROQ_API_KEY not set.` : 'GROQ_API_KEY not set.';
-    console.warn(`No GROQ_KEY — falling back directly to Ollama (${OLLAMA_MODEL})…`);
+    lastError = `Groq API (${result.status}): ${result.errText}`;
   }
 
-  // 3. Final Fallback: Local Ollama (Zero quotas)
-  console.warn(`Calling Ollama...`);
-  const result = await callOllamaDirect(fullPrompt, opts);
-  if (result.ok) return result.text;
+  // 3. Try Ollama if running locally
+  if (process.env.OLLAMA_URL) {
+    const result = await callOllamaDirect(fullPrompt, opts);
+    if (result.ok) return result.text;
+    lastError = `Ollama API (${result.status}): ${result.errText}`;
+  }
 
-  lastError = `${lastError} | Ollama API error (${result.status}): ${result.errText}`;
-  throw new Error(`All LLM providers failed. Last error: ${lastError}`);
+  throw new Error(`LLM Analysis failed: ${lastError}`);
 }
 
-/** Calls the LLM expecting JSON back; strips code fences defensively and parses. */
 export async function callGeminiJSON(prompt, opts = {}) {
   const raw = await callGemini(prompt, { ...opts, json: true });
   const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
