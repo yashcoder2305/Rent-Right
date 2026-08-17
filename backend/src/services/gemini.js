@@ -27,7 +27,7 @@ async function callGeminiDirect(prompt, opts = {}) {
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: opts.temperature ?? 0.2,
-          maxOutputTokens: opts.maxTokens ?? 2048,
+          maxOutputTokens: opts.maxTokens ?? 8192,
         },
       });
 
@@ -65,7 +65,7 @@ async function callGroqDirect(prompt, opts = {}) {
       model: groqModel,
       messages: [{ role: 'user', content: prompt }],
       temperature: opts.temperature ?? 0.2,
-      max_tokens: opts.maxTokens ?? 2048,
+      max_tokens: opts.maxTokens ?? 8192,
     }),
   });
 

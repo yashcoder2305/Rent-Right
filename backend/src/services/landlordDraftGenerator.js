@@ -81,7 +81,7 @@ RULES:
 - Respond with ONLY the JSON object. No markdown, no preamble.
 `;
 
-  const draftJson = await callGeminiJSON(prompt);
+  const draftJson = await callGeminiJSON(prompt, { maxTokens: 8192 });
 
   if (!draftJson.rewrites || !Array.isArray(draftJson.rewrites)) {
     throw new Error('LLM returned an invalid draft rewrites format. Please try again.');
