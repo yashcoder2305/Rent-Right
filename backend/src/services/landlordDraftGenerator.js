@@ -1,7 +1,7 @@
 // Landlord draft generator — takes a set of violations and the original clauses,
 // and uses the LLM to produce a fully rewritten, legally compliant lease draft.
 
-import { callGemini, callGeminiJSON } from './gemini.js';
+import { callGeminiJSON } from './gemini.js';
 import { jsPDF } from 'jspdf';
 
 /**
@@ -12,8 +12,6 @@ import { jsPDF } from 'jspdf';
  * @returns {Promise<{ sections: Array, pdfBuffer: Buffer, summaryText: string }>}
  */
 export async function generateCompliantDraft(clauses, violations, jurisdictionId) {
-  const violatedClauseIds = new Set(violations.map((v) => v.clause_id));
-
   // Build a structured view of clauses + their issues
   const clauseSummary = clauses.map((c) => {
     const relatedViolations = violations.filter((v) => v.clause_id === c.clause_id);
@@ -29,56 +27,106 @@ export async function generateCompliantDraft(clauses, violations, jurisdictionId
     };
   });
 
+  const violatedClauses = clauseSummary.filter((c) => c.has_violations);
+
+  // If no violations exist, return original lease as-is without calling the LLM (saves tokens & time)
+  if (violatedClauses.length === 0) {
+    const sections = clauses.map((c) => ({
+      clause_id: c.clause_id,
+      title: c.clause_type.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+      original_text: c.text,
+      redrafted_text: c.text,
+      was_changed: false,
+      change_reason: null,
+      legal_basis: null,
+    }));
+    const summary = 'All clauses are compliant with local tenancy laws. No changes required.';
+    const pdfBuffer = generateDraftPdf({ summary, changes_count: 0, sections }, jurisdictionId);
+    return {
+      sections,
+      summary,
+      changes_count: 0,
+      pdfBuffer,
+    };
+  }
+
+  // Only pass violated clauses to the LLM to prevent hitting maxOutputTokens limit (2048)
   const prompt = `
-You are a senior tenancy law expert specialising in the legal framework of jurisdiction: ${jurisdictionId}.
+You are a senior tenancy law expert specialising in the residential tenancy laws of jurisdiction: ${jurisdictionId}.
 
-A landlord has submitted a draft lease agreement with the following clauses. Some clauses have been flagged as legally non-compliant.
+Several clauses in a proposed lease agreement have been flagged as legally non-compliant or unfair.
+Your task is to draft legally sound, balanced rewrites for ONLY the flagged non-compliant clauses.
 
-Your task is to produce a COMPLETE, REDRAFTED, LEGALLY COMPLIANT lease agreement. For each violated clause, replace it with a legally sound version. For compliant clauses, keep them unchanged (you may lightly improve the language for clarity).
-
-ORIGINAL CLAUSES WITH VIOLATION DETAILS:
-${JSON.stringify(clauseSummary, null, 2)}
+FLAGGED CLAUSES WITH VIOLATION DETAILS:
+${JSON.stringify(violatedClauses, null, 2)}
 
 Return a JSON object in EXACTLY this format:
 {
   "summary": "A 2-3 sentence overview of the key changes made and why the draft is now compliant.",
-  "changes_count": <number of clauses that were changed>,
-  "sections": [
+  "rewrites": [
     {
       "clause_id": "the original clause_id",
       "title": "A short descriptive title for this clause (e.g. 'Security Deposit', 'Entry Rights')",
-      "original_text": "the original clause text",
-      "redrafted_text": "the new legally compliant text",
-      "was_changed": true/false,
-      "change_reason": "Brief explanation of why this was changed (null if unchanged)",
-      "legal_basis": "The legal provision this complies with (null if unchanged)"
+      "redrafted_text": "The new legally compliant text to replace the non-compliant clause.",
+      "change_reason": "Brief explanation of why this change was necessary.",
+      "legal_basis": "The specific act and section this complies with (e.g., 'Model Tenancy Act 2021, Section 11')"
     }
   ]
 }
 
 RULES:
-- Every clause from the input MUST appear in sections[], in the same order.
-- If a clause is compliant, set was_changed: false and set redrafted_text = original_text.
-- Redrafted clauses MUST cite the specific law/section they comply with in legal_basis.
+- Provide rewrites ONLY for the clauses listed above.
 - The redrafted_text must be professional, clear, and legally sound — suitable for an actual lease.
-- Do NOT add new clauses that weren't in the original.
+- Do NOT include any other clauses in your response.
 - Respond with ONLY the JSON object. No markdown, no preamble.
 `;
 
   const draftJson = await callGeminiJSON(prompt);
 
-  // Validate the response structure
-  if (!draftJson.sections || !Array.isArray(draftJson.sections)) {
-    throw new Error('LLM returned an invalid draft format. Please try again.');
+  if (!draftJson.rewrites || !Array.isArray(draftJson.rewrites)) {
+    throw new Error('LLM returned an invalid draft rewrites format. Please try again.');
   }
 
+  // Combine original compliant clauses with the LLM-rewritten clauses
+  const sections = clauses.map((c) => {
+    const rewrite = draftJson.rewrites.find((r) => r.clause_id === c.clause_id);
+    const title = c.clause_type.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+    if (rewrite) {
+      return {
+        clause_id: c.clause_id,
+        title: rewrite.title || title,
+        original_text: c.text,
+        redrafted_text: rewrite.redrafted_text,
+        was_changed: true,
+        change_reason: rewrite.change_reason,
+        legal_basis: rewrite.legal_basis,
+      };
+    } else {
+      return {
+        clause_id: c.clause_id,
+        title: title,
+        original_text: c.text,
+        redrafted_text: c.text,
+        was_changed: false,
+        change_reason: null,
+        legal_basis: null,
+      };
+    }
+  });
+
+  const fullDraft = {
+    summary: draftJson.summary,
+    changes_count: sections.filter((s) => s.was_changed).length,
+    sections,
+  };
+
   // Generate PDF
-  const pdfBuffer = generateDraftPdf(draftJson, jurisdictionId);
+  const pdfBuffer = generateDraftPdf(fullDraft, jurisdictionId);
 
   return {
-    sections: draftJson.sections,
-    summary: draftJson.summary,
-    changes_count: draftJson.changes_count || draftJson.sections.filter((s) => s.was_changed).length,
+    sections: fullDraft.sections,
+    summary: fullDraft.summary,
+    changes_count: fullDraft.changes_count,
     pdfBuffer,
   };
 }
