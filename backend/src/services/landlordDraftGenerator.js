@@ -5,6 +5,19 @@ import { callGeminiJSON } from './gemini.js';
 import { jsPDF } from 'jspdf';
 
 /**
+ * Returns true if the clause text is PDF metadata/binary garbage.
+ */
+function isGarbageClause(text) {
+  if (!text || typeof text !== 'string' || text.trim().length < 15) return true;
+  const t = text.trim();
+  const MARKERS = ['CreationDate', 'ModDate', 'endobj', 'startxref', 'FlateDecode', '/MediaBox', 'XMPMeta'];
+  if (MARKERS.some((m) => t.includes(m))) return true;
+  if (/\b[0-9a-f]{24,}\b/i.test(t)) return true; // MD5/SHA hashes
+  const realWords = (t.match(/[a-zA-Z]{3,}/g) || []).length;
+  return realWords < 4; // fewer than 4 real words = garbage
+}
+
+/**
  * Generate a legally compliant lease draft from violations and original clauses.
  * @param {Array} clauses - The original parsed clauses from the lease.
  * @param {Array} violations - The violations found in the lease.
@@ -12,8 +25,14 @@ import { jsPDF } from 'jspdf';
  * @returns {Promise<{ sections: Array, pdfBuffer: Buffer, summaryText: string }>}
  */
 export async function generateCompliantDraft(clauses, violations, jurisdictionId) {
-  // Build a structured view of clauses + their issues
-  const clauseSummary = clauses.map((c) => {
+  // Filter out garbage PDF metadata clauses before any processing
+  const cleanClauses = clauses.filter((c) => !isGarbageClause(c.text));
+  if (cleanClauses.length === 0) {
+    throw new Error('No readable lease clauses found. Please re-upload the lease or paste the text directly.');
+  }
+
+  // Build a structured view of clean clauses + their violations
+  const clauseSummary = cleanClauses.map((c) => {
     const relatedViolations = violations.filter((v) => v.clause_id === c.clause_id);
     return {
       clause_id: c.clause_id,
@@ -29,9 +48,9 @@ export async function generateCompliantDraft(clauses, violations, jurisdictionId
 
   const violatedClauses = clauseSummary.filter((c) => c.has_violations);
 
-  // If no violations exist, return original lease as-is without calling the LLM (saves tokens & time)
+  // If no violations exist, return original lease as-is without calling the LLM
   if (violatedClauses.length === 0) {
-    const sections = clauses.map((c) => ({
+    const sections = cleanClauses.map((c) => ({
       clause_id: c.clause_id,
       title: c.clause_type.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
       original_text: c.text,
@@ -88,7 +107,7 @@ RULES:
   }
 
   // Combine original compliant clauses with the LLM-rewritten clauses
-  const sections = clauses.map((c) => {
+  const sections = cleanClauses.map((c) => {
     const rewrite = draftJson.rewrites.find((r) => r.clause_id === c.clause_id);
     const title = c.clause_type.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
     if (rewrite) {
