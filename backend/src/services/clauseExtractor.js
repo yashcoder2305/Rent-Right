@@ -136,8 +136,14 @@ export async function extractClauses(rawText) {
   // Pick the strategy with the most clauses
   const best = strategies.reduce((a, b) => (b.length > a.length ? b : a), []);
 
-  // If at least 2 clauses found, use regex result — no LLM needed
-  if (best.length >= 2) {
+  // Smarter Success Heuristic:
+  // If we only found a few clauses, but some are very long (e.g. > 300 characters),
+  // they likely contain multiple mashed-together clauses. In this case, fall back
+  // to the LLM to segment the text properly.
+  const hasVeryLongClause = best.some((c) => c.text.length > 300);
+  const isSuspiciouslySparse = best.length < 5 && hasVeryLongClause;
+
+  if (best.length >= 2 && !isSuspiciouslySparse) {
     return { clauses: best, method: 'regex' };
   }
 
