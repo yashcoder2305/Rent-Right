@@ -91,14 +91,29 @@ export default function Results() {
   const violations = data.violations || [];
   const meta = data.meta || {};
 
-  // Deduplicate by explanation
+  // Keywords that indicate the LLM flagged a garbage/binary clause, not a real lease clause.
+  // These come from old DB records analyzed before the PDF garbage-filtering fixes.
+  const GARBAGE_VERDICT_KEYWORDS = [
+    'unintelligible', 'metadata', 'gibberish', 'hash string', 'binary',
+    'corrupted', 'meaningless', 'raw pdf', 'illegible',
+  ];
+  function isGarbageVerdict(v) {
+    const exp = (v.explanation || '').toLowerCase();
+    return GARBAGE_VERDICT_KEYWORDS.some((kw) => exp.includes(kw));
+  }
+
+  // Deduplicate by explanation AND strip garbage-verdict violations from old DB records
   const seen = new Set();
   const uniqueViolations = violations.filter((v) => {
+    if (isGarbageVerdict(v)) return false; // hide stale garbage results
     const key = (v.explanation || '').trim().slice(0, 80);
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
+
+  // Detect if ALL violations were garbage (stale result from before fix)
+  const allGarbage = violations.length > 0 && uniqueViolations.length === 0;
 
   // Risk score
   let riskScore = 100;
@@ -133,15 +148,49 @@ export default function Results() {
           </div>
         )}
 
+        {/* Stale analysis banner */}
+        {allGarbage && (
+          <div className="mb-5 bg-amber-50 border border-amber-300 rounded-xl px-5 py-4 flex items-start gap-3">
+            <svg className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-amber-800 mb-0.5">Stale Analysis — Re-upload Required</p>
+              <p className="text-xs text-amber-700 leading-relaxed">
+                This lease was scanned before a PDF reader update. The old result only extracted PDF metadata, not real lease text. Re-upload the same file to get the accurate full analysis.
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/upload')}
+              className="flex-shrink-0 mt-0.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold rounded-lg transition-all whitespace-nowrap"
+            >
+              Re-upload →
+            </button>
+          </div>
+        )}
+
         {/* Page Header */}
-        <div className="mb-6">
-          <h1 className="font-outfit text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight">
-            {isLandlord ? 'Compliance Review Results' : 'Analysis Results'}
-          </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            {isLandlord ? 'Landlord Compliance Report for ' : 'Legal Intelligence Report for '}
-            <span className="text-blue-600 font-bold">{data.filename || `Lease #${id}`}</span>
-          </p>
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="font-outfit text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight">
+              {isLandlord ? 'Compliance Review Results' : 'Analysis Results'}
+            </h1>
+            <p className="text-xs font-semibold text-slate-500 mt-1">
+              {isLandlord ? 'Landlord Compliance Report for ' : 'Legal Intelligence Report for '}
+              <span className="text-blue-600 font-bold">{data.filename || `Lease #${id}`}</span>
+            </p>
+          </div>
+          <div>
+            <button
+              onClick={() => navigate('/upload')}
+              className="px-4 py-2 border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all shadow-sm"
+            >
+              <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89H18" />
+              </svg>
+              Scan Another Lease
+            </button>
+          </div>
         </div>
 
         {/* Lease Meta Strip */}
@@ -187,7 +236,7 @@ export default function Results() {
             </div>
 
             {uniqueViolations.length === 0 && (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-8 text-center">
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-8 text-center shadow-sm">
                 <div className="text-4xl mb-3">✅</div>
                 <h3 className="font-bold text-emerald-800 text-base mb-1">
                   {isLandlord ? 'Lease Is Legally Compliant' : 'No Violations Found'}
@@ -377,10 +426,10 @@ export default function Results() {
               <div className="space-y-3">
                 <button
                   onClick={handleGenerateDraft}
-                  disabled={draftLoading}
+                  disabled={draftLoading || allGarbage}
                   className={`w-full py-3.5 font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 transition-all ${
-                    draftLoading
-                      ? 'bg-indigo-400 text-white cursor-not-allowed'
+                    draftLoading || allGarbage
+                      ? 'bg-indigo-400 text-indigo-100 cursor-not-allowed shadow-none'
                       : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-600/30'
                   }`}
                 >
