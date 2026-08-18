@@ -10,6 +10,8 @@
  * (library metadata embedded in the PDF info dict) are filtered out.
  */
 import pdfParse from 'pdf-parse';
+import zlib from 'zlib';
+
 
 // ─── Known garbage patterns from PDF library metadata ────────────────────────
 const GARBAGE_PATTERNS = [
@@ -62,37 +64,117 @@ function isGarbageText(text) {
   return garbageMatches > cleaned.length * 0.4;
 }
 
-// ─── Raw binary BT...ET extraction ───────────────────────────────────────────
-function extractRawPdfStrings(buffer) {
-  try {
-    const str = buffer.toString('latin1');
-    const textParts = [];
+// ─── Custom ASCII85 Decoder ──────────────────────────────────────────────────
+function decodeAscii85(str) {
+  let clean = str.replace(/<~/g, '').replace(/~>/g, '').replace(/\s/g, '');
+  clean = clean.replace(/z/g, '!!!!!');
+  const padding = 5 - (clean.length % 5);
+  if (padding < 5) clean += 'uuuuu'.slice(0, padding);
+  
+  const out = [];
+  for (let i = 0; i < clean.length; i += 5) {
+    let val = 0;
+    for (let j = 0; j < 5; j++) {
+      val = val * 85 + (clean.charCodeAt(i + j) - 33);
+    }
+    out.push((val >>> 24) & 0xFF);
+    out.push((val >>> 16) & 0xFF);
+    out.push((val >>> 8) & 0xFF);
+    out.push(val & 0xFF);
+  }
+  let buf = Buffer.from(out);
+  if (padding < 5) buf = buf.slice(0, buf.length - padding);
+  return buf;
+}
 
-    // Extract text within BT (Begin Text) ... ET (End Text) blocks
-    const btBlocks = str.match(/BT[\s\S]*?ET/g) || [];
-    for (const block of btBlocks) {
-      // Literal strings: (text)
-      const literalStrings = block.match(/\(([^()\\]|\\[\s\S])*\)/g) || [];
-      for (const s of literalStrings) {
-        const cleaned = s
-          .slice(1, -1)
-          .replace(/\\([0-7]{1,3})/g, (_, oct) => String.fromCharCode(parseInt(oct, 8)))
-          .replace(/\\n/g, '\n')
-          .replace(/\\r/g, '')
-          .replace(/\\t/g, ' ')
-          .replace(/\\(.)/g, '$1')
-          .trim();
-        if (cleaned.length >= 2 && /[a-zA-Z]/.test(cleaned) && !/^FnL|^ReportLab/i.test(cleaned)) {
-          textParts.push(cleaned);
+// ─── PDF Stream Text Extractor & Operator Cleaner ─────────────────────────────
+function cleanPdfOperators(decompressedText) {
+  const lines = decompressedText.split(/[\r\n]+/);
+  const outLines = [];
+  for (const line of lines) {
+    let cleanLine = '';
+    // Look for string literals in parenthesis
+    const matches = line.match(/\(([^)]*)\)/g);
+    if (matches) {
+      cleanLine = matches
+        .map(m => m.slice(1, -1))
+        // Ignore short PDF codes / metadata
+        .filter(t => t.trim().length > 0)
+        .join(' ');
+    }
+    cleanLine = cleanLine
+      .replace(/\\([0-7]{1,3})/g, (_, oct) => String.fromCharCode(parseInt(oct, 8)))
+      .replace(/\\(.)/g, '$1')
+      .trim();
+    if (cleanLine.length > 0) {
+      outLines.push(cleanLine);
+    }
+  }
+  return outLines.join('\n');
+}
+
+// ─── Robust Binary Stream Decompression Strategy (Strategy 3 Fallback) ────────
+function extractRawPdfTextFromStreams(buffer) {
+  try {
+    let offset = 0;
+    const results = [];
+    const str = buffer.toString('latin1');
+    
+    while (offset < buffer.length) {
+      const streamIdx = buffer.indexOf('stream', offset);
+      if (streamIdx === -1) break;
+      
+      const endstreamIdx = buffer.indexOf('endstream', streamIdx);
+      if (endstreamIdx === -1) break;
+      
+      // Determine filters by looking back at object dictionary
+      const objStartIdx = str.lastIndexOf('obj', streamIdx);
+      let isAscii85 = false;
+      let isFlate = false;
+      if (objStartIdx !== -1) {
+        const dict = str.slice(objStartIdx, streamIdx);
+        if (dict.includes('ASCII85Decode')) isAscii85 = true;
+        if (dict.includes('FlateDecode')) isFlate = true;
+      }
+      
+      let start = streamIdx + 6;
+      if (buffer[start] === 13) start++; // \r
+      if (buffer[start] === 10) start++; // \n
+      
+      let end = endstreamIdx;
+      if (buffer[end - 1] === 10) end--;
+      if (buffer[end - 1] === 13) end--;
+      
+      if (end > start) {
+        let streamData = buffer.slice(start, end);
+        try {
+          if (isAscii85) {
+            streamData = decodeAscii85(streamData.toString('latin1'));
+          }
+          if (isFlate) {
+            streamData = zlib.inflateSync(streamData);
+          }
+          const decompressed = streamData.toString('utf-8');
+          const cleaned = cleanPdfOperators(decompressed);
+          if (cleaned.length > 10) {
+            results.push(cleaned);
+          }
+        } catch (e) {
+          // Fallback simple inflation
+          try {
+            const decomp = zlib.inflateSync(buffer.slice(start, end));
+            results.push(cleanPdfOperators(decomp.toString('utf-8')));
+          } catch {}
         }
       }
+      offset = endstreamIdx + 9;
     }
-
-    if (textParts.length >= 5) {
-      return textParts.join(' ');
+    
+    if (results.length > 0) {
+      return results.join('\n\n');
     }
-
-    // Wider ASCII string scan as last resort
+    
+    // ASCII fallback
     const asciiStrings = str.match(/[A-Za-z][A-Za-z0-9\s,.'"\-:;()]{20,}/g) || [];
     const filtered = asciiStrings.filter((s) => !/FnL6X|ReportLab|Acrobat|iText/i.test(s));
     return filtered.join('\n');
@@ -100,6 +182,7 @@ function extractRawPdfStrings(buffer) {
     return '';
   }
 }
+
 
 // ─── pdf-parse with custom renderer ─────────────────────────────────────────
 async function pdfParseCustom(buffer) {
@@ -155,7 +238,7 @@ export async function parseLeasePdf(buffer) {
 
   // Strategy 3: raw binary BT/ET extraction if text is empty or garbage
   if (!text || text.trim().length < 40 || isGarbageText(text)) {
-    const rawText = extractRawPdfStrings(buffer);
+    const rawText = extractRawPdfTextFromStreams(buffer);
     if (rawText.trim().length > text.trim().length) {
       text = rawText;
     }
