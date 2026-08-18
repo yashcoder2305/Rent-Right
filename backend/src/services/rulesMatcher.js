@@ -87,6 +87,37 @@ function loadRules(jurisdictionId) {
   return RULES.filter((r) => r.jurisdiction_id === jurisdictionId || r.jurisdiction_id === base);
 }
 
+/**
+ * Sanitize raw PDF extracted text.
+ * Returns null if the text is clearly garbage (PDF metadata, binary, XMP).
+ * Returns a cleaned, trimmed string otherwise.
+ */
+function cleanClauseText(text) {
+  if (!text || typeof text !== 'string') return null;
+  const t = text.trim();
+  if (t.length < 10) return null;
+
+  // Detect PDF metadata / binary garbage markers
+  const GARBAGE_MARKERS = [
+    'CreationDate', 'ModDate', 'XMPMeta', 'xpacket', 'rdf:RDF',
+    'pdfmark', 'endobj', 'endstream', 'BT\n', '\x00', '\x01',
+    'obj\n', 'xref\n', 'startxref', '/Type /Page', 'Helvetica',
+    'FlateDecode', 'Resources', '/MediaBox', 'procset',
+  ];
+  if (GARBAGE_MARKERS.some((m) => t.includes(m))) return null;
+
+  // Detect too many non-printable / non-ASCII characters (binary PDF)
+  const nonPrintable = (t.match(/[\x00-\x08\x0b-\x1f\x7f-\x9f]/g) || []).length;
+  if (nonPrintable / t.length > 0.05) return null;
+
+  // Detect very long token-like strings (binary encoded)
+  const tokens = t.split(/\s+/);
+  const longTokens = tokens.filter((tok) => tok.length > 40).length;
+  if (longTokens / Math.max(tokens.length, 1) > 0.25) return null;
+
+  return t;
+}
+
 function extractNumericField(clauseText, field) {
   const t = clauseText.toLowerCase();
   if (field === 'deposit_months') {
@@ -194,7 +225,7 @@ ${JSON.stringify(toScan.map((c) => ({ clause_id: c.clause_id, clause_type: c.cla
       rawViolations.push({
         rule_id: 'universal_scan',
         clause_id: r.clause_id,
-        clause_text: clause.text,
+        clause_text: cleanClauseText(clause.text) || '',
         classification: r.classification || 'potential_violation',
         severity: r.severity || 'moderate',
         confidence: typeof r.confidence === 'number' ? r.confidence : 0.85,
@@ -230,7 +261,7 @@ export async function matchRules(clauses, jurisdictionId) {
             rawViolations.push({
               rule_id: rule.id,
               clause_id: clause.clause_id,
-              clause_text: clause.text,
+              clause_text: cleanClauseText(clause.text) || '',
               classification: result.classification,
               severity: rule.severity,
               confidence: result.confidence,
@@ -287,7 +318,7 @@ ${JSON.stringify(items)}`;
           rawViolations.push({
             rule_id: item.rule.id,
             clause_id: item.clause.clause_id,
-            clause_text: item.clause.text,
+            clause_text: cleanClauseText(item.clause.text) || '',
             classification: res.classification || 'potential_violation',
             severity: item.rule.severity,
             confidence: typeof res.confidence === 'number' ? res.confidence : 0.75,

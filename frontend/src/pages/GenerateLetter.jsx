@@ -2,6 +2,19 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 
+function isGarbageText(text) {
+  if (!text || typeof text !== 'string' || text.trim().length < 10) return true;
+  const t = text.trim();
+  const GARBAGE_MARKERS = ['CreationDate', 'ModDate', 'XMPMeta', 'xpacket', 'endobj', 'endstream', '/Type /', 'startxref', 'FlateDecode'];
+  if (GARBAGE_MARKERS.some((m) => t.includes(m))) return true;
+  const nonPrintable = (t.match(/[\x00-\x08\x0b-\x1f\x7f-\x9f]/g) || []).length;
+  if (nonPrintable / t.length > 0.04) return true;
+  const tokens = t.split(/\s+/);
+  const longTokenRatio = tokens.filter((tok) => tok.length > 35).length / Math.max(tokens.length, 1);
+  if (longTokenRatio > 0.2) return true;
+  return false;
+}
+
 export default function GenerateLetter() {
   const [searchParams] = useSearchParams();
   const leaseId = searchParams.get('lease_id');
@@ -52,13 +65,27 @@ export default function GenerateLetter() {
           const violations = data.violations || [];
           const filename = data.filename || 'Lease Agreement';
 
+          // Deduplicate by explanation to avoid repeated identical points
+          const seenExp = new Set();
+          const uniqueViolations = violations.filter((v) => {
+            const key = (v.explanation || '').trim().slice(0, 80);
+            if (seenExp.has(key)) return false;
+            seenExp.add(key);
+            return true;
+          });
+
           let pointsText = '';
-          if (violations.length === 0) {
+          if (uniqueViolations.length === 0) {
             pointsText = '\nUpon thorough review, no statutory violations were flagged in the agreement. However, we request formal confirmation of standard habitability guidelines.';
           } else {
-            pointsText = violations.map((v, i) => {
-              const clauseRef = v.clause_text ? ` ("${v.clause_text.slice(0, 70)}...")` : '';
-              return `\n${i + 1}. ${v.classification ? v.classification.replace(/_/g, ' ').toUpperCase() : 'Non-Compliant Clause'}${clauseRef}:\n   ${v.explanation}${v.legal_reference ? ` (Pursuant to ${v.legal_reference})` : ''}`;
+            pointsText = uniqueViolations.map((v, i) => {
+              const title = v.classification
+                ? v.classification.replace(/_/g, ' ').toUpperCase()
+                : 'NON-COMPLIANT CLAUSE';
+              const legalRef = v.legal_reference
+                ? ` (Pursuant to ${v.legal_reference.split(';')[0].trim()})`
+                : '';
+              return `\n${i + 1}. ${title}:\n   ${v.explanation}${legalRef}`;
             }).join('\n');
           }
 
@@ -68,18 +95,18 @@ export default function GenerateLetter() {
 
 To: ${data.meta?.landlord || 'Landlord / Management Office'}
 
-RE: Formal Notice of Lease Non-Compliance - ${data.meta?.property || filename}
+RE: Formal Notice of Lease Non-Compliance — ${data.meta?.property || filename}
 
 Dear Management Team,
 
-I am writing this formal letter to address several concerns identified during a professional review of the residential lease agreement for ${data.meta?.property || 'the rented property'}.
+I am writing this formal letter to address several statutory concerns identified during a professional review of the residential lease agreement for ${data.meta?.property || 'the rented property'}.
 
 Specifically, we identify the following points of contention:
 ${pointsText}
 
-I kindly request a written response acknowledging these statutory discrepancies and a revised lease addendum correcting these points within 14 business days. I value our tenancy relationship and aim to resolve these technical inaccuracies promptly and amicably.
+We kindly request a written response acknowledging these statutory discrepancies and a revised lease addendum correcting these issues within 14 business days. We value the tenancy relationship and aim to resolve these legal inaccuracies promptly.
 
-Sincerely,
+Yours sincerely,
 
 ${data.meta?.tenant || 'Tenant'}`;
 
