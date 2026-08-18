@@ -28,27 +28,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      {/* Header matching Screenshot 3 */}
-      <header className="px-8 py-4 bg-white border-b border-slate-100 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 text-decoration-none">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold font-outfit text-lg shadow-sm">
-            R
-          </div>
-          <span className="font-outfit font-extrabold text-xl text-slate-900 tracking-tight">
-            Rent<span className="text-blue-600">Right</span>
-          </span>
-        </Link>
-        <div className="flex items-center gap-6 text-xs font-medium text-slate-600">
-          <a href="#" className="hover:text-blue-600 transition-colors">Features</a>
-          <a href="#" className="hover:text-blue-600 transition-colors">Pricing</a>
-          <a href="#" className="hover:text-blue-600 transition-colors">Security</a>
-          <button className="text-slate-400 hover:text-slate-600">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-            </svg>
-          </button>
-        </div>
-      </header>
+
 
       {/* Main content grid */}
       <main className="flex-1 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8 p-6 lg:p-12 items-center">
