@@ -18,9 +18,8 @@ export default function Navbar() {
   const navItems = [
     { label: 'Dashboard', path: '/dashboard' },
     { label: 'Upload', path: '/upload' },
-    { label: 'Results', path: location.pathname.startsWith('/results') ? location.pathname : '/dashboard' },
     { label: 'Compare', path: '/compare' },
-    { label: 'History', path: '/dashboard' },
+    { label: 'History', path: '/history' },
     { label: 'Generate Letter', path: '/letter' },
   ];
 
@@ -38,11 +37,11 @@ export default function Navbar() {
             </span>
           </Link>
 
-          {/* Navigation links matching screenshot */}
+          {/* Clean Top Navigation Links */}
           {user && (
             <nav className="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-600">
               {navItems.map((item) => {
-                const isActive = location.pathname === item.path || (item.label === 'Results' && location.pathname.startsWith('/results'));
+                const isActive = location.pathname === item.path;
                 return (
                   <Link
                     key={item.label}
@@ -61,7 +60,7 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Right side controls matching reference header */}
+        {/* Right side controls */}
         <div className="flex items-center gap-4">
           {user ? (
             <div className="flex items-center gap-3">
