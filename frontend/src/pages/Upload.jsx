@@ -27,8 +27,15 @@ export default function Upload() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [analysisFocus, setAnalysisFocus] = useState('tenant'); // 'tenant' | 'landlord'
-  const navigate = useNavigate();
 
+  // Additional lease details as requested
+  const [propertyAddress, setPropertyAddress] = useState('120 Wall St, New York, NY');
+  const [tenantName, setTenantName] = useState('Aria Kensington');
+  const [monthlyRent, setMonthlyRent] = useState('$4,250 / mo');
+  const [duration, setDuration] = useState('12 Months');
+  const [deposit, setDeposit] = useState('$8,500 (Alert)');
+
+  const navigate = useNavigate();
   const isLandlord = analysisFocus === 'landlord';
 
   useEffect(() => {
@@ -53,6 +60,16 @@ export default function Upload() {
       else formData.append('text', text);
 
       const result = await api.analyze(formData);
+      
+      // Store user entered metadata for Results page presentation
+      result.meta = {
+        property: propertyAddress,
+        tenant: tenantName,
+        rent: monthlyRent,
+        duration: duration,
+        deposit: deposit
+      };
+
       sessionStorage.setItem('rentright_last_result', JSON.stringify(result));
       navigate(`/results/${result.lease_id}?mode=${analysisFocus}`);
     } catch (err) {
@@ -63,12 +80,12 @@ export default function Upload() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-12">
+    <div className="max-w-3xl mx-auto px-6 py-12 font-sans">
       <div className="text-center max-w-xl mx-auto mb-10">
         <span className={`font-mono text-xs font-bold uppercase tracking-widest border px-3 py-1 rounded-full inline-block mb-3 ${
           isLandlord
             ? 'text-amber-700 bg-amber-50 border-amber-200'
-            : 'text-brand-600 bg-brand-50 border-brand-200'
+            : 'text-blue-600 bg-blue-50 border-blue-200'
         }`}>
           {isLandlord ? '🏠 LANDLORD LEASE CHECKER' : '🔍 AI LEASE SCANNER'}
         </span>
@@ -84,9 +101,10 @@ export default function Upload() {
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xl p-6 sm:p-8">
         <form onSubmit={handleSubmit} className="space-y-6">
+          
           {/* Goal Selector */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2.5">
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5">
               Select Your Goal / Perspective
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -95,12 +113,12 @@ export default function Upload() {
                 onClick={() => setAnalysisFocus('tenant')}
                 className={`flex items-start gap-3 p-4 rounded-xl border text-left transition-all duration-200 ${
                   analysisFocus === 'tenant'
-                    ? 'border-brand-500 bg-brand-50/45 ring-2 ring-brand-500'
+                    ? 'border-blue-500 bg-blue-50/45 ring-2 ring-blue-500'
                     : 'border-slate-200 bg-white hover:border-slate-300'
                 }`}
               >
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-sm ${
-                  analysisFocus === 'tenant' ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-600'
+                  analysisFocus === 'tenant' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
                 }`}>
                   🔍
                 </div>
@@ -136,16 +154,61 @@ export default function Upload() {
             </div>
           </div>
 
+          {/* Lease Property Details Form Inputs */}
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-3">
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+              Lease & Tenant Information
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <span className="text-[10px] font-bold text-slate-500 uppercase">Property Address</span>
+                <input
+                  type="text"
+                  value={propertyAddress}
+                  onChange={(e) => setPropertyAddress(e.target.value)}
+                  className="w-full mt-1 border border-slate-200 rounded-lg px-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-slate-500 uppercase">Tenant Name</span>
+                <input
+                  type="text"
+                  value={tenantName}
+                  onChange={(e) => setTenantName(e.target.value)}
+                  className="w-full mt-1 border border-slate-200 rounded-lg px-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-slate-500 uppercase">Monthly Rent</span>
+                <input
+                  type="text"
+                  value={monthlyRent}
+                  onChange={(e) => setMonthlyRent(e.target.value)}
+                  className="w-full mt-1 border border-slate-200 rounded-lg px-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-slate-500 uppercase">Security Deposit</span>
+                <input
+                  type="text"
+                  value={deposit}
+                  onChange={(e) => setDeposit(e.target.value)}
+                  className="w-full mt-1 border border-slate-200 rounded-lg px-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Jurisdiction Selector */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
               Select Legal Jurisdiction
             </label>
             <div className="relative">
               <select
                 value={jurisdictionId}
                 onChange={(e) => setJurisdictionId(e.target.value)}
-                className="w-full border border-slate-300 rounded-xl px-4 py-3 bg-slate-50/50 text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-600 transition-all appearance-none cursor-pointer"
+                className="w-full border border-slate-300 rounded-xl px-4 py-3 bg-slate-50/50 text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all appearance-none cursor-pointer"
               >
                 {jurisdictions.map((j) => (
                   <option key={j.id} value={j.id}>
@@ -184,12 +247,12 @@ export default function Upload() {
             <div
               className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${
                 file
-                  ? isLandlord ? 'border-amber-500 bg-amber-50/30' : 'border-brand-500 bg-brand-50/30'
-                  : 'border-slate-300 hover:border-brand-400 bg-slate-50/50'
+                  ? isLandlord ? 'border-amber-500 bg-amber-50/30' : 'border-blue-500 bg-blue-50/30'
+                  : 'border-slate-300 hover:border-blue-400 bg-slate-50/50'
               }`}
             >
               <div className={`w-12 h-12 rounded-full border flex items-center justify-center mx-auto mb-3 text-xl ${
-                isLandlord ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-brand-50 border-brand-200 text-brand-600'
+                isLandlord ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-blue-50 border-blue-200 text-blue-600'
               }`}>
                 {file ? getFileIcon(file) : '📤'}
               </div>
@@ -240,7 +303,7 @@ export default function Upload() {
                     ? 'Paste the full text of your draft lease agreement here…'
                     : 'Paste the full text of the lease agreement here (clauses, rules, deposit terms...)'
                 }
-                className="w-full border border-slate-300 rounded-xl p-4 bg-white text-sm text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-brand-600 transition-all leading-relaxed"
+                className="w-full border border-slate-300 rounded-xl p-4 bg-white text-sm text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all leading-relaxed"
               />
             </div>
           )}
@@ -254,10 +317,10 @@ export default function Upload() {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full text-white font-semibold rounded-xl py-3.5 text-sm flex items-center justify-center gap-2 transition-all shadow-lg disabled:opacity-50 ${
+            className={`w-full text-white font-bold rounded-xl py-3.5 text-xs flex items-center justify-center gap-2 transition-all shadow-lg disabled:opacity-50 ${
               isLandlord
                 ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30'
-                : 'bg-brand-600 hover:bg-brand-700 shadow-brand-600/30'
+                : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/30'
             }`}
           >
             {loading ? (
@@ -274,17 +337,6 @@ export default function Upload() {
               'Scan & Analyze Lease Now →'
             )}
           </button>
-
-          {loading && (
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center space-y-1">
-              <p className="text-xs font-semibold text-slate-800">AI is evaluating clauses against legal database…</p>
-              <p className="text-[11px] text-slate-500">
-                {isLandlord
-                  ? 'Checking compliance with Model Tenancy Act, ICA, and Constitutional rights.'
-                  : 'Checking Model Tenancy Act, Constitution rights, and predatory terms.'}
-              </p>
-            </div>
-          )}
         </form>
       </div>
     </div>

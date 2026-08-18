@@ -8,10 +8,11 @@ import Upload from './pages/Upload.jsx';
 import Results from './pages/Results.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Compare from './pages/Compare.jsx';
+import GenerateLetter from './pages/GenerateLetter.jsx';
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-brand-500 selection:text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-blue-600 selection:text-white font-sans">
       <Navbar />
       <Routes>
         <Route path="/" element={<Landing />} />
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/results/:id" element={<ProtectedRoute><Results /></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/compare" element={<ProtectedRoute><Compare /></ProtectedRoute>} />
+        <Route path="/letter" element={<ProtectedRoute><GenerateLetter /></ProtectedRoute>} />
       </Routes>
     </div>
   );
