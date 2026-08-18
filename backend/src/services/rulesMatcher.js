@@ -97,12 +97,12 @@ function cleanClauseText(text) {
   const t = text.trim();
   if (t.length < 10) return null;
 
-  // Detect PDF metadata / binary garbage markers
+  // Detect PDF metadata / binary garbage markers (NOT Helvetica - it appears in real PDFs)
   const GARBAGE_MARKERS = [
     'CreationDate', 'ModDate', 'XMPMeta', 'xpacket', 'rdf:RDF',
-    'pdfmark', 'endobj', 'endstream', 'BT\n', '\x00', '\x01',
-    'obj\n', 'xref\n', 'startxref', '/Type /Page', 'Helvetica',
-    'FlateDecode', 'Resources', '/MediaBox', 'procset',
+    'pdfmark', 'endobj', 'endstream', '\x00', '\x01',
+    'xref\n', 'startxref', '/Type /Page',
+    'FlateDecode', '/MediaBox', 'procset',
   ];
   if (GARBAGE_MARKERS.some((m) => t.includes(m))) return null;
 
@@ -112,8 +112,8 @@ function cleanClauseText(text) {
 
   // Detect very long token-like strings (binary encoded)
   const tokens = t.split(/\s+/);
-  const longTokens = tokens.filter((tok) => tok.length > 40).length;
-  if (longTokens / Math.max(tokens.length, 1) > 0.25) return null;
+  const longTokens = tokens.filter((tok) => tok.length > 50).length;
+  if (longTokens / Math.max(tokens.length, 1) > 0.3) return null;
 
   return t;
 }
@@ -163,78 +163,98 @@ function getJurisdictionLabel(jurisdictionId) {
   return jurisdictionId;
 }
 
-// ─── Universal Second-Pass Scan ───────────────────────────────────────────────
+// ─── Universal Violation Scan (primary detection engine) ─────────────────────
 /**
- * Sends all clauses (not already flagged) through a general illegal-clause
- * detector. Catches violations missed by typed rule matching.
+ * Sends ALL clauses through a comprehensive illegal-clause detector.
+ * This is the primary detection pass — runs on every clause regardless of
+ * whether the typed rules have already flagged it, to ensure nothing is missed.
+ * Results are chunked to stay within token limits.
  */
 async function universalViolationScan(clauses, rawViolations, jurisdictionId) {
-  const flaggedClearIds = new Set(
-    rawViolations.filter((v) => v.classification === 'clear_violation').map((v) => v.clause_id)
-  );
-  const toScan = clauses.filter((c) => !flaggedClearIds.has(c.clause_id));
-  if (toScan.length === 0) return;
+  if (clauses.length === 0) return;
 
   const jLabel = getJurisdictionLabel(jurisdictionId);
 
-  const prompt = `You are a STRICT ${jLabel} tenant-rights legal expert.
+  // Process in chunks of 8 clauses to stay well within token limits
+  const CHUNK_SIZE = 8;
+  for (let i = 0; i < clauses.length; i += CHUNK_SIZE) {
+    const chunk = clauses.slice(i, i + CHUNK_SIZE);
 
-Analyse each lease clause below and determine if it is ILLEGAL, UNFAIR, or POTENTIALLY UNENFORCEABLE.
+    const prompt = `You are a STRICT ${jLabel} tenant-rights legal expert.
 
-MANDATORY FLAGS — you MUST classify these as clear_violation with confidence ≥ 0.9:
-- Non-refundable security deposit of any amount
-- Landlord can enter at any time / without notice / without any stated notice period
-- Rent can be increased at landlord's discretion / at any time / without cap or formula  
-- Tenant waives any statutory right
-- Landlord can modify lease terms unilaterally
+Analyse each lease clause below. Identify ALL violations — be comprehensive and flag everything that is illegal, unfair, or unenforceable.
 
-Flag as potential_violation (confidence ≥ 0.7) if:
-- Landlord has "sole discretion" over material terms
-- Penalties are vague or disproportionate
+MANDATORY FLAGS — ALWAYS classify as clear_violation (confidence ≥ 0.95):
+- Non-refundable security deposit
+- Landlord entry without notice / at any time
+- Rent increase without notice / at landlord discretion
+- Tenant waives any legal right / right to sue
+- Landlord never liable for anything
+- Tenant responsible for structural repairs
+- Landlord can terminate immediately without cause
+- Utility charges above metered rate
+- Penalties that are excessive or compound
+- Lease valid without signatures
+- Self-help eviction / lockout
+
+Flag as potential_violation (confidence ≥ 0.75) if:
+- Sole discretion clauses
+- Vague or unlimited penalties
 - Tenant bears liability for events outside their control
-- Any clause restricts a constitutional or statutory right
+- Contradictory terms in the lease
+- Unregistered lease provisions
 
-Only mark as "compliant" if the clause is 100% standard and unambiguously legal.
+Only mark "compliant" if 100% unambiguously legal.
 
-Return a JSON array — one entry per clause in the SAME ORDER:
+Return a JSON array — one object per clause:
 {
-  "clause_id": "...",
-  "violation": true | false,
+  "clause_id": "<exact clause_id from input>",
+  "violation": true or false,
   "classification": "clear_violation" | "potential_violation" | "compliant",
   "severity": "critical" | "moderate" | "minor",
-  "explanation": "One plain-English sentence explaining exactly what right is violated and under which law.",
-  "legal_reference": "Cite the specific Act and section"
+  "explanation": "Plain-English sentence: what right is violated and under which specific law.",
+  "legal_reference": "Specific Act §Section"
 }
 
-CLAUSES TO ANALYSE:
-${JSON.stringify(toScan.map((c) => ({ clause_id: c.clause_id, clause_type: c.clause_type, text: c.text })))}`;
+CLAUSES:
+${JSON.stringify(chunk.map((c) => ({ clause_id: c.clause_id, clause_type: c.clause_type, text: c.text })))}`;
 
-  try {
-    const results = await callGeminiJSON(prompt, { temperature: 0.05, maxTokens: 8000 });
-    if (!Array.isArray(results)) return;
+    try {
+      const results = await callGeminiJSON(prompt, { temperature: 0.05, maxTokens: 6000 });
+      if (!Array.isArray(results)) continue;
 
-    for (const r of results) {
-      if (!r.violation || r.classification === 'compliant') continue;
-      const clause = toScan.find((c) => c.clause_id === r.clause_id);
-      if (!clause) continue;
+      for (const r of results) {
+        if (!r.violation || r.classification === 'compliant') continue;
+        const clause = chunk.find((c) => c.clause_id === r.clause_id);
+        if (!clause) continue;
 
-      // Don't duplicate — only add if not already recorded for this clause
-      const alreadyFlagged = rawViolations.some((v) => v.clause_id === r.clause_id);
-      if (alreadyFlagged && r.classification !== 'clear_violation') continue;
+        // Check if already flagged for this clause — only upgrade severity, don't duplicate
+        const existingIdx = rawViolations.findIndex((v) => v.clause_id === r.clause_id);
+        if (existingIdx >= 0) {
+          const existing = rawViolations[existingIdx];
+          const severityRank = { critical: 0, moderate: 1, minor: 2 };
+          if ((severityRank[r.severity] ?? 2) < (severityRank[existing.severity] ?? 2)) {
+            existing.severity = r.severity;
+            existing.classification = r.classification;
+            existing.confidence = Math.max(existing.confidence, r.confidence || 0.85);
+          }
+          continue;
+        }
 
-      rawViolations.push({
-        rule_id: 'universal_scan',
-        clause_id: r.clause_id,
-        clause_text: cleanClauseText(clause.text) || '',
-        classification: r.classification || 'potential_violation',
-        severity: r.severity || 'moderate',
-        confidence: typeof r.confidence === 'number' ? r.confidence : 0.85,
-        explanation: r.explanation || 'Clause flagged as potentially illegal or unfair.',
-        legal_reference: r.legal_reference || getDefaultLegalRef(jurisdictionId),
-      });
+        rawViolations.push({
+          rule_id: 'universal_scan',
+          clause_id: r.clause_id,
+          clause_text: cleanClauseText(clause.text) || clause.text.slice(0, 200),
+          classification: r.classification || 'potential_violation',
+          severity: r.severity || 'moderate',
+          confidence: typeof r.confidence === 'number' ? r.confidence : 0.85,
+          explanation: r.explanation || 'Clause flagged as potentially illegal or unfair.',
+          legal_reference: r.legal_reference || getDefaultLegalRef(jurisdictionId),
+        });
+      }
+    } catch (err) {
+      console.warn(`universalViolationScan chunk ${i}-${i + CHUNK_SIZE} error:`, err.message);
     }
-  } catch (err) {
-    console.warn('universalViolationScan error:', err.message);
   }
 }
 
@@ -243,104 +263,44 @@ ${JSON.stringify(toScan.map((c) => ({ clause_id: c.clause_id, clause_type: c.cla
 export async function matchRules(clauses, jurisdictionId) {
   const rules = loadRules(jurisdictionId);
   const rawViolations = [];
-  const llmQueue = [];
 
+  // ── Pass 1: Fast deterministic checks (deposit amount, notice days, etc.) ──
   for (const clause of clauses) {
-    // Match exact type rules + catch-all suspicious_clause and general rules
     const relevantRules = rules.filter(
-      (r) => r.clause_type === clause.clause_type
-        || r.clause_type === 'suspicious_clause'
-        || r.clause_type === 'general'
+      (r) => r.check_type === 'deterministic' &&
+        (r.clause_type === clause.clause_type || r.clause_type === 'general')
     );
-
     for (const rule of relevantRules) {
-      if (rule.check_type === 'deterministic') {
-        const result = runDeterministicCheck(rule, clause);
-        if (result !== null) {
-          if (result.classification !== 'compliant') {
-            rawViolations.push({
-              rule_id: rule.id,
-              clause_id: clause.clause_id,
-              clause_text: cleanClauseText(clause.text) || '',
-              classification: result.classification,
-              severity: rule.severity,
-              confidence: result.confidence,
-              explanation: result.explanation,
-              legal_reference: rule.legal_reference,
-            });
-          }
-          continue;
-        }
+      const result = runDeterministicCheck(rule, clause);
+      if (result && result.classification !== 'compliant') {
+        rawViolations.push({
+          rule_id: rule.id,
+          clause_id: clause.clause_id,
+          clause_text: cleanClauseText(clause.text) || clause.text.slice(0, 200),
+          classification: result.classification,
+          severity: rule.severity,
+          confidence: result.confidence,
+          explanation: result.explanation,
+          legal_reference: rule.legal_reference,
+        });
       }
-      llmQueue.push({ rule, clause });
     }
   }
 
-  // ── Batch LLM check for typed rules ──────────────────────────────────────
-  if (llmQueue.length > 0) {
-    const items = llmQueue.map((item, i) => ({
-      index: i,
-      rule_id: item.rule.id,
-      rule_description: item.rule.description,
-      legal_reference: item.rule.legal_reference,
-      clause_text: item.clause.text,
-    }));
-
-    const jLabel = getJurisdictionLabel(jurisdictionId);
-
-    const prompt = `You are a strict ${jLabel} tenant-rights legal analyst.
-
-For each item below, decide whether the lease clause violates the described rule.
-
-CRITICAL: Err on the side of flagging. Only mark "compliant" when 100% certain the clause is lawful.
-- Non-refundable deposit → ALWAYS clear_violation
-- Entry without notice / "at any time" → ALWAYS clear_violation  
-- Arbitrary rent increases → ALWAYS clear_violation
-- Waiver of rights → ALWAYS clear_violation
-- Sole discretion clauses → potential_violation
-
-Classify each as: "clear_violation" | "potential_violation" | "compliant"
-
-Return a JSON array in the SAME ORDER, each object:
-{ "index": <number>, "classification": "...", "confidence": 0.0–1.0, "explanation": "One sentence citing which law is violated." }
-
-ITEMS:
-${JSON.stringify(items)}`;
-
-    try {
-      const batchResults = await callGeminiJSON(prompt, { temperature: 0.05, maxTokens: 6000 });
-      const results = Array.isArray(batchResults) ? batchResults : [];
-
-      for (const res of results) {
-        const item = llmQueue[res.index];
-        if (!item) continue;
-        if ((res.classification || 'potential_violation') !== 'compliant') {
-          rawViolations.push({
-            rule_id: item.rule.id,
-            clause_id: item.clause.clause_id,
-            clause_text: cleanClauseText(item.clause.text) || '',
-            classification: res.classification || 'potential_violation',
-            severity: item.rule.severity,
-            confidence: typeof res.confidence === 'number' ? res.confidence : 0.75,
-            explanation: res.explanation || item.rule.description,
-            legal_reference: item.rule.legal_reference || getDefaultLegalRef(jurisdictionId),
-          });
-        }
-      }
-    } catch (err) {
-      console.warn('Typed LLM rule check failed, continuing to universal scan:', err.message);
-    }
-  }
-
-  // ── Universal second-pass scan ────────────────────────────────────────────
+  // ── Pass 2: Comprehensive LLM scan on ALL clauses (chunked) ──────────────
+  // This is the primary detection engine — replaces the unreliable typed-rules batch
   await universalViolationScan(clauses, rawViolations, jurisdictionId);
 
-  // ── Deduplicate and sort ──────────────────────────────────────────────────
+  // ── Deduplicate: one entry per clause_id, merging metadata ───────────────
   const severityRank = { critical: 0, moderate: 1, minor: 2 };
   const consolidated = new Map();
 
   for (const v of rawViolations) {
-    const key = v.clause_id || v.clause_text.trim().slice(0, 80);
+    // CRITICAL FIX: always use clause_id as the dedup key
+    // Never use clause_text (which may be empty/garbage after sanitization)
+    const key = v.clause_id;
+    if (!key) continue; // skip any violation with no clause_id
+
     if (!consolidated.has(key)) {
       consolidated.set(key, {
         ...v,
