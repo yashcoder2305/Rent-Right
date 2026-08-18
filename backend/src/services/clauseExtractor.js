@@ -47,10 +47,35 @@ function guessClauseType(text) {
   return 'general';
 }
 
+/**
+ * Returns true if the text chunk is garbage PDF content and should be discarded.
+ * Guards against MD5 hashes, binary tokens, and metadata leaking into clauses.
+ */
+function isGarbageClause(text) {
+  const t = text.trim();
+
+  // Must have at least 4 real words (sequences of 3+ alphabetic chars)
+  const realWords = (t.match(/[a-zA-Z]{3,}/g) || []).length;
+  if (realWords < 4) return true;
+
+  // Reject if the text contains MD5/SHA hex hashes
+  if (/\b[0-9a-f]{24,}\b/i.test(t)) return true;
+
+  // Reject if more than 20% of chars are non-printable or PDF-operator-like
+  const nonWord = (t.match(/[^\w\s.,;:\-'"()!?%@&/\n]/g) || []).length;
+  if (nonWord / t.length > 0.2) return true;
+
+  // Reject PDF metadata keyword lines
+  const PDF_KEYS = ['CreationDate', 'ModDate', 'XMPMeta', 'xpacket', 'endobj', 'endstream', 'startxref', 'FlateDecode', '/MediaBox', '/Type /'];
+  if (PDF_KEYS.some((k) => t.includes(k))) return true;
+
+  return false;
+}
+
 function toClauseObjects(rawChunks, source = 'regex') {
   return rawChunks
     .map((t) => t.trim())
-    .filter((t) => t.length > 20)        // discard header noise / blank lines
+    .filter((t) => t.length > 20 && !isGarbageClause(t))
     .map((text) => ({
       clause_id: nextId(),
       clause_type: guessClauseType(text),

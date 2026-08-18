@@ -24,6 +24,12 @@ const GARBAGE_PATTERNS = [
   /^Author:/gim,
   /digest$/gim,
   /--\s*digest/gi,
+  // MD5 / SHA-1 / SHA-256 hex hashes (32, 40, 64 lowercase hex chars)
+  /\b[0-9a-f]{32,64}\b/gi,
+  // PDF binary operator tokens embedded in text streams
+  /\b(?:Tf|Td|TD|Tm|Tr|Ts|Tc|Tw|Tz|TL|cm|BT|ET|Tj|TJ|q|Q|re|W|n|w|J|j|M|d|i|gs|Do|BI|ID|EI|RG|rg|K|k|sc|scn|SC|SCN|cs|CS|sh|BMC|BDC|EMC|MP|DP)\b/g,
+  // Repeated sequences of non-word chars (PDF operators)
+  /[\(\)\[\]<>{}]{3,}/g,
 ];
 
 function cleanGarbage(text) {
@@ -31,6 +37,17 @@ function cleanGarbage(text) {
   for (const rx of GARBAGE_PATTERNS) {
     t = t.replace(rx, ' ');
   }
+  // Remove any line that is mostly whitespace after cleanup or consists only of
+  // punctuation / numbers (stray PDF reference lines like "0 R" etc.)
+  t = t
+    .split('\n')
+    .filter((line) => {
+      const trimmed = line.trim();
+      if (trimmed.length === 0) return false;
+      // Keep if line has at least 3 consecutive alphabet chars (real words)
+      return /[a-zA-Z]{3,}/.test(trimmed);
+    })
+    .join('\n');
   return t.replace(/\s{3,}/g, '\n').trim();
 }
 

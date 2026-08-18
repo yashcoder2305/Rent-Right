@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import Landing from './pages/Landing.jsx';
@@ -11,10 +11,16 @@ import Compare from './pages/Compare.jsx';
 import GenerateLetter from './pages/GenerateLetter.jsx';
 import History from './pages/History.jsx';
 
+// Routes where the page has its own header/navbar
+const NO_NAVBAR_ROUTES = ['/', '/login', '/register'];
+
 export default function App() {
+  const location = useLocation();
+  const showNavbar = !NO_NAVBAR_ROUTES.includes(location.pathname);
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-blue-600 selection:text-white font-sans">
-      <Navbar />
+      {showNavbar && <Navbar />}
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
